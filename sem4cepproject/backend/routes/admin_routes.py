@@ -1,0 +1,70 @@
+from fastapi import APIRouter, HTTPException, status, Depends
+from bson import ObjectId
+from typing import List
+from datetime import datetime
+
+from database import pharmacies_collection, users_collection
+from models import PharmacyResponse, PharmacyStatusUpdate
+from auth import get_current_user
+
+router = APIRouter(prefix="/api/admin", tags=["Admin"])
+
+def require_admin(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required."
+        )
+    return current_user
+
+def doc_to_pharmacy_response(doc: dict) -> dict:
+    return {
+        "id": str(doc["_id"]),
+        "owner_id": str(doc["owner_id"]),
+        "name": doc["name"],
+        "owner_name": doc["owner_name"],
+        "email": doc["email"],
+        "phone": doc["phone"],
+        "city": doc["city"],
+        "address": doc["address"],
+        "lat": doc.get("lat", 0.0),
+        "lng": doc.get("lng", 0.0),
+        "timings": doc["timings"],
+        "license": doc["license"],
+        "status": doc["status"],
+        "created_at": doc.get("created_at", "").isoformat() if isinstance(doc.get("created_at"), datetime) else str(doc.get("created_at", ""))
+    }
+
+@router.get("/pharmacies", response_model=List[PharmacyResponse])
+async def get_all_pharmacies(admin_user: dict = Depends(require_admin)):
+    cursor = pharmacies_collection.find()
+    pharmacies = await cursor.to_list(length=1000)
+    return [doc_to_pharmacy_response(p) for p in pharmacies]
+
+@router.patch("/pharmacies/{pharmacy_id}/status", response_model=PharmacyResponse)
+async def update_pharmacy_status(pharmacy_id: str, data: PharmacyStatusUpdate, admin_user: dict = Depends(require_admin)):
+    if not ObjectId.is_valid(pharmacy_id):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid pharmacy ID")
+
+    pharmacy = await pharmacies_collection.find_one({"_id": ObjectId(pharmacy_id)})
+    if not pharmacy:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pharmacy not found")
+
+    new_status = data.status
+    
+    # 1. Update pharmacy status
+    await pharmacies_collection.update_one(
+        {"_id": ObjectId(pharmacy_id)},
+        {"$set": {"status": new_status}}
+    )
+    
+    # 2. Update associated user status
+    user_status = "active" if new_status == "verified" else ("pending" if new_status in ["pending", "denied"] else "banned")
+    await users_collection.update_one(
+        {"_id": pharmacy["owner_id"]},
+        {"$set": {"status": user_status}}
+    )
+    
+    # Refetch
+    updated = await pharmacies_collection.find_one({"_id": ObjectId(pharmacy_id)})
+    return doc_to_pharmacy_response(updated)
