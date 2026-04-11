@@ -1,31 +1,33 @@
 import { useState, useEffect } from 'react';
-import { adminStats as initialStats } from '../data/data';
-import { getPharmacies, updatePharmacyStatus as apiUpdatePharmacy } from '../api';
+import { getPharmacies, updatePharmacyStatus as apiUpdatePharmacy, getAdminStats } from '../api';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [pharmacyList, setPharmacyList] = useState([]);
+  const [stats, setStats] = useState({
+    totalUsers: '…',
+    totalPharmacies: '…',
+    totalStocks: '…',
+    pendingVerifications: '…',
+  });
 
   useEffect(() => {
-    const loadPharmacies = async () => {
+    const loadData = async () => {
       try {
-        const data = await getPharmacies();
-        setPharmacyList(data || []);
+        const [pharmacies, liveStats] = await Promise.all([
+          getPharmacies(),
+          getAdminStats(),
+        ]);
+        setPharmacyList(pharmacies || []);
+        setStats(liveStats);
       } catch (err) {
         console.error(err);
-        alert('Failed to load pharmacies: ' + err.message);
+        alert('Failed to load admin data: ' + err.message);
       }
     };
 
-    loadPharmacies();
+    loadData();
   }, []);
-
-  // Derive live stats from current pharmacy list
-  const stats = {
-    ...initialStats,
-    totalPharmacies: pharmacyList.length,
-    pendingVerifications: pharmacyList.filter(p => p.status === 'pending').length,
-  };
 
   const updatePharmacyStatus = async (id, status) => {
     try {
@@ -41,28 +43,28 @@ export default function AdminDashboard() {
   const statCards = [
     {
       label: 'Total Users',
-      value: stats.totalUsers,
+      value: typeof stats.totalUsers === 'number' ? stats.totalUsers.toLocaleString() : stats.totalUsers,
       icon: '👥',
       bg: 'var(--clr-info-bg)',
       color: 'var(--clr-info)',
     },
     {
       label: 'Total Pharmacies',
-      value: stats.totalPharmacies,
+      value: typeof stats.totalPharmacies === 'number' ? stats.totalPharmacies.toLocaleString() : stats.totalPharmacies,
       icon: '🏥',
       bg: 'var(--clr-success-bg)',
       color: 'var(--clr-success)',
     },
     {
-      label: 'Total Stocks',
-      value: stats.totalStocks.toLocaleString(),
+      label: 'Total Stock Units',
+      value: typeof stats.totalStocks === 'number' ? stats.totalStocks.toLocaleString() : stats.totalStocks,
       icon: '💊',
       bg: 'var(--clr-primary-bg)',
       color: 'var(--clr-primary)',
     },
     {
       label: 'Pending Verifications',
-      value: stats.pendingVerifications,
+      value: typeof stats.pendingVerifications === 'number' ? stats.pendingVerifications.toLocaleString() : stats.pendingVerifications,
       icon: '⏳',
       bg: 'var(--clr-warning-bg)',
       color: 'var(--clr-warning)',

@@ -133,6 +133,14 @@ export async function updatePharmacyStatus(id, status) {
   });
 }
 
+/**
+ * Get real-time admin dashboard stats.
+ * @returns {Promise<{totalUsers, totalPharmacies, totalStocks, pendingVerifications}>}
+ */
+export async function getAdminStats() {
+  return request('/admin/stats');
+}
+
 // ── Inventory API ────────────────────────────────────────────
 
 export async function getMyInventory() {

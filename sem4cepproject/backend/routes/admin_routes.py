@@ -3,8 +3,8 @@ from bson import ObjectId
 from typing import List
 from datetime import datetime
 
-from database import pharmacies_collection, users_collection
-from models import PharmacyResponse, PharmacyStatusUpdate
+from database import pharmacies_collection, users_collection, inventory_collection
+from models import PharmacyResponse, PharmacyStatusUpdate, AdminStats
 from auth import get_current_user
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
@@ -40,6 +40,34 @@ async def get_all_pharmacies(admin_user: dict = Depends(require_admin)):
     cursor = pharmacies_collection.find()
     pharmacies = await cursor.to_list(length=1000)
     return [doc_to_pharmacy_response(p) for p in pharmacies]
+
+
+@router.get("/stats", response_model=AdminStats)
+async def get_admin_stats(admin_user: dict = Depends(require_admin)):
+    """Return real-time platform statistics for the Admin dashboard."""
+
+    # Total regular users (role = "user")
+    total_users = await users_collection.count_documents({"role": "user"})
+
+    # Total pharmacies
+    total_pharmacies = await pharmacies_collection.count_documents({})
+
+    # Pending pharmacy verifications
+    pending_verifications = await pharmacies_collection.count_documents({"status": "pending"})
+
+    # Total stock units across ALL inventory items
+    pipeline = [
+        {"$group": {"_id": None, "total": {"$sum": "$stock"}}}
+    ]
+    agg = await inventory_collection.aggregate(pipeline).to_list(length=1)
+    total_stocks = agg[0]["total"] if agg else 0
+
+    return AdminStats(
+        totalUsers=total_users,
+        totalPharmacies=total_pharmacies,
+        totalStocks=total_stocks,
+        pendingVerifications=pending_verifications,
+    )
 
 @router.patch("/pharmacies/{pharmacy_id}/status", response_model=PharmacyResponse)
 async def update_pharmacy_status(pharmacy_id: str, data: PharmacyStatusUpdate, admin_user: dict = Depends(require_admin)):

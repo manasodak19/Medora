@@ -48,6 +48,13 @@ class TokenResponse(BaseModel):
 
 # ── Admin Models ──────────────────────────────────────────────
 
+class AdminStats(BaseModel):
+    totalUsers: int
+    totalPharmacies: int
+    totalStocks: int
+    pendingVerifications: int
+
+
 class PharmacyStatusUpdate(BaseModel):
     status: str = Field(..., pattern="^(verified|pending|denied|banned)$")
 
