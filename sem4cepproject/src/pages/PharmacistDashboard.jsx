@@ -504,11 +504,12 @@ function OrderScannerTab({ loadInventory }) {
         }
     };
 
-    html5QrcodeScanner.render(onScanSuccess, (err) => {});
+    html5QrcodeScanner.render(onScanSuccess, () => {});
     
     return () => {
       html5QrcodeScanner.clear().catch(e => console.error("Could not clear scanner", e));
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const verifyOrder = async (token) => {

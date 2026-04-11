@@ -183,6 +183,7 @@ export default function UserDashboard() {
         alert("Could not calculate a route on the map.");
       }
     } catch (err) {
+      console.error(err);
       alert("Error fetching directions from OSRM.");
     }
   };

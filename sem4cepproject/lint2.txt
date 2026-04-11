@@ -1,0 +1,44 @@
+﻿
+> project-sem4-cep@0.0.0 lint
+> eslint .
+
+
+C:\Users\Manas\Downloads\sem4cepproject\sem4cepproject\src\pages\AdminDashboard.jsx
+  10:5  error  Error: Cannot access variable before it is declared
+
+`loadPharmacies` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+   8 |
+   9 |   useEffect(() => {
+> 10 |     loadPharmacies();
+     |     ^^^^^^^^^^^^^^ `loadPharmacies` accessed before it is declared
+  11 |   }, []);
+  12 |
+  13 |   const loadPharmacies = async () => {
+
+  11 |   }, []);
+  12 |
+> 13 |   const loadPharmacies = async () => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 14 |     try {
+     | ^^^^^^^^^
+> 15 |       const data = await getPharmacies();
+     | ^^^^^^^^^
+> 16 |       setPharmacyList(data || []);
+     | ^^^^^^^^^
+> 17 |     } catch (err) {
+     | ^^^^^^^^^
+> 18 |       console.error(err);
+     | ^^^^^^^^^
+> 19 |       alert('Failed to load pharmacies: ' + err.message);
+     | ^^^^^^^^^
+> 20 |     }
+     | ^^^^^^^^^
+> 21 |   };
+     | ^^^^^ `loadPharmacies` is declared here
+  22 |
+  23 |   // Derive live stats from current pharmacy list
+  24 |   const stats = {  react-hooks/immutability
+
+Γ£û 1 problem (1 error, 0 warnings)
+

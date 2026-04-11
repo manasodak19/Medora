@@ -5,24 +5,20 @@ import { getPharmacies, updatePharmacyStatus as apiUpdatePharmacy } from '../api
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [pharmacyList, setPharmacyList] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const loadPharmacies = async () => {
+      try {
+        const data = await getPharmacies();
+        setPharmacyList(data || []);
+      } catch (err) {
+        console.error(err);
+        alert('Failed to load pharmacies: ' + err.message);
+      }
+    };
+
     loadPharmacies();
   }, []);
-
-  const loadPharmacies = async () => {
-    try {
-      setLoading(true);
-      const data = await getPharmacies();
-      setPharmacyList(data || []);
-    } catch (err) {
-      console.error(err);
-      alert('Failed to load pharmacies: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Derive live stats from current pharmacy list
   const stats = {
