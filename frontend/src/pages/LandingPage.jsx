@@ -26,6 +26,28 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* How It Works */}
+      <section className="how-it-works">
+        <h2>How It Works</h2>
+        <div className="steps-grid">
+          <div className="step-item animate-in" style={{ animationDelay: '0.1s' }}>
+            <div className="step-number">1</div>
+            <h3>Search Medicine</h3>
+            <p>Type the name of any medicine or browse by category to find what you need.</p>
+          </div>
+          <div className="step-item animate-in" style={{ animationDelay: '0.3s' }}>
+            <div className="step-number">2</div>
+            <h3>View Nearby Stock</h3>
+            <p>See which nearby pharmacies have it in stock with live map pins and distance info.</p>
+          </div>
+          <div className="step-item animate-in" style={{ animationDelay: '0.5s' }}>
+            <div className="step-number">3</div>
+            <h3>Book & Collect</h3>
+            <p>Reserve your medicine, get a QR code, and pick it up from the pharmacy within 30 minutes.</p>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section className="features">
         <h2>Why Choose MEDORA?</h2>
@@ -87,14 +109,10 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer style={{
-        textAlign: 'center',
-        padding: 'var(--sp-xl)',
-        color: 'var(--clr-text-muted)',
-        fontSize: 'var(--fs-sm)',
-        borderTop: '1px solid var(--clr-border)',
-      }}>
-        © 2026 MEDORA — Medicine at the Right Time. All rights reserved.
+      <footer className="landing-footer">
+        <p>
+          © 2026 <span className="footer-brand">MEDORA</span> — Medicine at the Right Time. All rights reserved.
+        </p>
       </footer>
     </div>
   );

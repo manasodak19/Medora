@@ -1,7 +1,23 @@
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function Navbar({ user, onLogout }) {
   const navigate = useNavigate();
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('medora-theme') || 'light';
+  });
+  const [iconSpin, setIconSpin] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('medora-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setIconSpin(true);
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    setTimeout(() => setIconSpin(false), 400);
+  };
 
   const handleLogout = () => {
     if (onLogout) onLogout();
@@ -16,6 +32,18 @@ export default function Navbar({ user, onLogout }) {
       </Link>
 
       <ul className="navbar-links">
+        <li>
+          <button
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label="Toggle dark mode"
+            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          >
+            <span className={`toggle-icon ${iconSpin ? 'spin-in' : ''}`}>
+              {theme === 'light' ? '🌙' : '☀️'}
+            </span>
+          </button>
+        </li>
         {!user ? (
           <>
             <li><Link to="/signin">Sign In</Link></li>

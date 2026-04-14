@@ -296,7 +296,7 @@ export default function UserDashboard() {
         {hasSearched && mapPins.length > 0 && (
           <div style={{ width: '350px', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', paddingRight: '10px' }}>
             {mapPins.map(pin => (
-              <div key={pin.pharmacy.id} style={{ background: 'var(--clr-surface)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+              <div key={pin.pharmacy.id} className="pharmacy-sidebar-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                   <h3 style={{ margin: 0, fontSize: '1rem' }}>{pin.pharmacy.name}</h3>
                   {pin.pharmacy.distance !== null && (
@@ -334,9 +334,9 @@ export default function UserDashboard() {
         <div style={{ flex: 1, borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', position: 'relative' }}>
 
           {routeDetails && (
-            <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1000, background: 'rgba(255,255,255,0.95)', padding: '1rem', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', width: '300px', maxHeight: '400px', display: 'flex', flexDirection: 'column' }}>
+            <div className="route-overlay">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <h4 style={{ margin: 0, color: 'var(--clr-primary-dark)' }}>Route to {routeDetails.destination}</h4>
+                <h4 style={{ margin: 0, color: 'var(--clr-primary)' }}>Route to {routeDetails.destination}</h4>
                 <button
                   onClick={(e) => { e.stopPropagation(); setRouteDetails(null); setRoutePath(null); }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 5px' }}
@@ -471,7 +471,7 @@ export default function UserDashboard() {
                 <h2 style={{ color: 'var(--clr-success)' }}>Booking Confirmed!</h2>
                 <p>Present the QR code below to the pharmacist within 30 minutes.</p>
 
-                <div style={{ margin: '2rem auto', background: '#fff', padding: '1rem', display: 'inline-block', borderRadius: '8px' }}>
+                <div className="qr-container">
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrToken}`}
                     alt="Booking QR Token"
