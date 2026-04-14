@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 import { getPharmacies, updatePharmacyStatus as apiUpdatePharmacy, getAdminStats } from '../api';
+import { 
+  Users, Hospital, Pill, Clock, LayoutDashboard, Store, 
+  CheckCircle, XCircle, Ban, Check, X, RotateCcw 
+} from 'lucide-react';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -44,28 +48,28 @@ export default function AdminDashboard() {
     {
       label: 'Total Users',
       value: typeof stats.totalUsers === 'number' ? stats.totalUsers.toLocaleString() : stats.totalUsers,
-      icon: '👥',
+      icon: <Users size={24} />,
       bg: 'var(--clr-info-bg)',
       color: 'var(--clr-info)',
     },
     {
       label: 'Total Pharmacies',
       value: typeof stats.totalPharmacies === 'number' ? stats.totalPharmacies.toLocaleString() : stats.totalPharmacies,
-      icon: '🏥',
+      icon: <Hospital size={24} />,
       bg: 'var(--clr-success-bg)',
       color: 'var(--clr-success)',
     },
     {
       label: 'Total Stock Units',
       value: typeof stats.totalStocks === 'number' ? stats.totalStocks.toLocaleString() : stats.totalStocks,
-      icon: '💊',
+      icon: <Pill size={24} />,
       bg: 'var(--clr-primary-bg)',
       color: 'var(--clr-primary)',
     },
     {
       label: 'Pending Verifications',
       value: typeof stats.pendingVerifications === 'number' ? stats.pendingVerifications.toLocaleString() : stats.pendingVerifications,
-      icon: '⏳',
+      icon: <Clock size={24} />,
       bg: 'var(--clr-warning-bg)',
       color: 'var(--clr-warning)',
     },
@@ -73,13 +77,13 @@ export default function AdminDashboard() {
 
   const getStatusBadge = (status) => {
     const map = {
-      verified: { cls: 'badge-success', text: '✓ Verified' },
-      pending:  { cls: 'badge-warning', text: '⏳ Pending' },
-      denied:   { cls: 'badge-danger',  text: '✗ Denied' },
-      banned:   { cls: 'badge-danger',  text: '🚫 Banned' },
+      verified: { cls: 'badge-success', icon: <CheckCircle size={14} style={{ marginRight: '4px' }} />, text: 'Verified' },
+      pending:  { cls: 'badge-warning', icon: <Clock size={14} style={{ marginRight: '4px' }} />, text: 'Pending' },
+      denied:   { cls: 'badge-danger',  icon: <XCircle size={14} style={{ marginRight: '4px' }} />, text: 'Denied' },
+      banned:   { cls: 'badge-danger',  icon: <Ban size={14} style={{ marginRight: '4px' }} />, text: 'Banned' },
     };
-    const s = map[status] || { cls: 'badge-info', text: status };
-    return <span className={`badge ${s.cls}`}>{s.text}</span>;
+    const s = map[status] || { cls: 'badge-info', icon: null, text: status };
+    return <span className={`badge ${s.cls}`} style={{ display: 'inline-flex', alignItems: 'center' }}>{s.icon}{s.text}</span>;
   };
 
   return (
@@ -90,14 +94,16 @@ export default function AdminDashboard() {
           <li
             className={activeTab === 'dashboard' ? 'active' : ''}
             onClick={() => setActiveTab('dashboard')}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            📊 Dashboard
+            <LayoutDashboard size={18} /> Dashboard
           </li>
           <li
             className={activeTab === 'pharmacies' ? 'active' : ''}
             onClick={() => setActiveTab('pharmacies')}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            🏥 Pharmacies
+            <Store size={18} /> Pharmacies
           </li>
         </ul>
       </aside>
@@ -179,14 +185,16 @@ export default function AdminDashboard() {
                               <button
                                 className="btn btn-success btn-sm"
                                 onClick={() => updatePharmacyStatus(pharmacy.id, 'verified')}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                               >
-                                ✓ Approve
+                                <Check size={14} /> Approve
                               </button>
                               <button
                                 className="btn btn-danger btn-sm"
                                 onClick={() => updatePharmacyStatus(pharmacy.id, 'denied')}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                               >
-                                ✗ Deny
+                                <X size={14} /> Deny
                               </button>
                             </>
                           )}
@@ -194,24 +202,27 @@ export default function AdminDashboard() {
                             <button
                               className="btn btn-warning btn-sm"
                               onClick={() => updatePharmacyStatus(pharmacy.id, 'banned')}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                             >
-                              🚫 Ban
+                              <Ban size={14} /> Ban
                             </button>
                           )}
                           {pharmacy.status === 'banned' && (
                             <button
                               className="btn btn-ghost btn-sm"
                               onClick={() => updatePharmacyStatus(pharmacy.id, 'pending')}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                             >
-                              ↩ Unban
+                              <RotateCcw size={14} /> Unban
                             </button>
                           )}
                           {pharmacy.status === 'denied' && (
                             <button
                               className="btn btn-ghost btn-sm"
                               onClick={() => updatePharmacyStatus(pharmacy.id, 'pending')}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                             >
-                              ↩ Re-review
+                              <RotateCcw size={14} /> Re-review
                             </button>
                           )}
                         </div>

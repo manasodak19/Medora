@@ -28,24 +28,24 @@ async def seed_admin():
             "created_at": datetime.now(timezone.utc),
         }
         await users_collection.insert_one(admin_doc)
-        print("✅ Admin user seeded: admin@medora.com / admin123")
+        print("[SUCCESS] Admin user seeded: admin@medora.com / admin123")
     else:
-        print("ℹ️  Admin user already exists.")
+        print("[INFO] Admin user already exists.")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup / shutdown events."""
     # Startup
-    print("🚀 Connecting to MongoDB...")
+    print("[STARTING] Connecting to MongoDB...")
     # Create unique index on email
     await users_collection.create_index("email", unique=True)
     # Seed admin
     await seed_admin()
-    print("✅ MEDORA Backend is ready!")
+    print("[READY] MEDORA Backend is ready!")
     yield
     # Shutdown
-    print("👋 Shutting down...")
+    print("[STOPPING] Shutting down...")
 
 
 app = FastAPI(
