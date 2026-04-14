@@ -107,8 +107,6 @@ export default function SignIn({ onAuth }) {
           </strong>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
             <span><strong>Admin:</strong> admin@medora.com / admin123</span>
-            <span><strong>Pharmacist:</strong> medplus@pharmacy.com / pharma123</span>
-            <span><strong>User:</strong> Sign up to create an account</span>
           </div>
         </div>
 
