@@ -2,7 +2,7 @@
 
 **Medora** is a state-of-the-art healthcare solution designed to bridge the gap between patients and pharmacies. It empowers users to find life-saving medications in real-time while providing pharmacists with a premium dashboard to manage their digital store.
 
-![Medora Banner](https://github.com/user-attachments/assets/d8b7b565-59d7-4040-a4b6-80f2c99d2668)
+
 <img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/492d9378-37b0-4af0-8a26-ffe570b36955" />
 
 ---
