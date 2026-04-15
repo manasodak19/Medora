@@ -62,6 +62,14 @@ function MapController({ center, bounds }) {
 export default function UserDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [searchHistory, setSearchHistory] = useState(() => {
+    try {
+      const saved = localStorage.getItem('medoraSearchHistory');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
   const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -104,6 +112,14 @@ export default function UserDashboard() {
     const q = queryOverride !== null ? queryOverride : searchQuery;
     const cat = categoryOverride !== null ? categoryOverride : selectedCategory;
 
+    if (q && q.trim()) {
+      setSearchHistory(prev => {
+        const newHistory = [q.trim(), ...prev.filter(item => item.toLowerCase() !== q.trim().toLowerCase())].slice(0, 5);
+        localStorage.setItem('medoraSearchHistory', JSON.stringify(newHistory));
+        return newHistory;
+      });
+    }
+
     setHasSearched(true);
     setLoading(true);
     setRoutePath(null);
@@ -128,64 +144,12 @@ export default function UserDashboard() {
     triggerSearch();
   };
 
-  const handleDirections = async (pin) => {
-    if (!locationGranted || !userPos) {
-      alert("Live location is required to calculate directions.");
-      return;
+  const handleDirections = (pin) => {
+    let url = `https://www.google.com/maps/dir/?api=1&destination=${pin.lat},${pin.lng}`;
+    if (locationGranted && userPos) {
+      url += `&origin=${userPos[0]},${userPos[1]}`;
     }
-
-    try {
-      const uLat = userPos[0];
-      const uLng = userPos[1];
-      const pLat = pin.lat;
-      const pLng = pin.lng;
-
-      // OSRM routing API (lng,lat order)
-      const res = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${uLng},${uLat};${pLng},${pLat}?overview=full&geometries=geojson&steps=true`
-      );
-      const data = await res.json();
-
-      if (data.routes && data.routes.length > 0) {
-        const route = data.routes[0];
-        // GeoJSON uses [lng, lat], Leaflet Polyline needs [lat, lng]
-        const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-        setRoutePath(coords);
-        // Fit bounds to the route
-        setMapBounds([userPos, [pLat, pLng]]);
-
-        // Extract basic route details
-        const distanceKm = (route.distance / 1000).toFixed(1);
-        const durationMin = Math.ceil(route.duration / 60);
-
-        let steps = [];
-        if (route.legs && route.legs[0] && route.legs[0].steps) {
-          steps = route.legs[0].steps.map(s => {
-            const maneuver = s.maneuver || {};
-            const type = maneuver.type || '';
-            const modifier = maneuver.modifier || '';
-            const name = s.name || '';
-            let text = type;
-            if (modifier && type !== modifier) text += ` ${modifier}`;
-            if (name && maneuver.type !== 'arrive') text += ` onto ${name}`;
-            return text.replace(/_/g, ' ');
-          });
-        }
-
-        setRouteDetails({
-          distance: distanceKm,
-          duration: durationMin,
-          steps: steps,
-          destination: pin.name || "Pharmacy"
-        });
-
-      } else {
-        alert("Could not calculate a route on the map.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error fetching directions from OSRM.");
-    }
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const openBookingSetup = (pin) => {
@@ -274,6 +238,35 @@ export default function UserDashboard() {
           </button>
         </form>
 
+        {searchHistory.length > 0 && (
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)' }}>Recent Searches:</span>
+            {searchHistory.map((item, idx) => (
+              <button
+                key={idx}
+                type="button"
+                style={{ fontSize: 'var(--fs-xs)', padding: '0.25rem 0.5rem', background: 'var(--clr-surface)', border: '1px solid var(--clr-border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--clr-text)' }}
+                onClick={() => {
+                  setSearchQuery(item);
+                  triggerSearch(item, selectedCategory);
+                }}
+              >
+                🕒 {item}
+              </button>
+            ))}
+            <button
+              type="button"
+              style={{ fontSize: 'var(--fs-xs)', padding: '0.25rem 0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-danger)', textDecoration: 'underline' }}
+              onClick={() => {
+                setSearchHistory([]);
+                localStorage.removeItem('medoraSearchHistory');
+              }}
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
         {hasSearched && !loading && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--sp-md)', flexWrap: 'wrap', gap: 'var(--sp-sm)' }}>
             <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-muted)' }}>
@@ -296,7 +289,7 @@ export default function UserDashboard() {
         {hasSearched && mapPins.length > 0 && (
           <div style={{ width: '350px', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', paddingRight: '10px' }}>
             {mapPins.map(pin => (
-              <div key={pin.pharmacy.id} className="pharmacy-sidebar-card">
+              <div key={pin.pharmacy.id} style={{ background: 'var(--clr-surface)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                   <h3 style={{ margin: 0, fontSize: '1rem' }}>{pin.pharmacy.name}</h3>
                   {pin.pharmacy.distance !== null && (
@@ -307,7 +300,7 @@ export default function UserDashboard() {
 
                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
                   <button className="btn btn-primary btn-sm" onClick={() => openBookingSetup(pin)}>🛒 Book</button>
-                  <button className="btn btn-secondary btn-sm" onClick={() => handleDirections(pin.pharmacy)}>🗺️ Route</button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => handleDirections(pin.pharmacy)}>🗺️ Direction</button>
                   <a href={`tel:${pin.pharmacy.phone}`} className="btn btn-ghost btn-sm">📞 Call</a>
                 </div>
 
@@ -334,9 +327,9 @@ export default function UserDashboard() {
         <div style={{ flex: 1, borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', position: 'relative' }}>
 
           {routeDetails && (
-            <div className="route-overlay">
+            <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1000, background: 'rgba(255,255,255,0.95)', padding: '1rem', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', width: '300px', maxHeight: '400px', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <h4 style={{ margin: 0, color: 'var(--clr-primary)' }}>Route to {routeDetails.destination}</h4>
+                <h4 style={{ margin: 0, color: 'var(--clr-primary-dark)' }}>Route to {routeDetails.destination}</h4>
                 <button
                   onClick={(e) => { e.stopPropagation(); setRouteDetails(null); setRoutePath(null); }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 5px' }}
@@ -471,7 +464,7 @@ export default function UserDashboard() {
                 <h2 style={{ color: 'var(--clr-success)' }}>Booking Confirmed!</h2>
                 <p>Present the QR code below to the pharmacist within 30 minutes.</p>
 
-                <div className="qr-container">
+                <div style={{ margin: '2rem auto', background: '#fff', padding: '1rem', display: 'inline-block', borderRadius: '8px' }}>
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrToken}`}
                     alt="Booking QR Token"
