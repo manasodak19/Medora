@@ -119,7 +119,8 @@ async def verify_booking(data: VerifyBookingRequest, current_user: dict = Depend
         
         verified_items.append({
             "name": med_name,
-            "quantity": item["quantity"]
+            "quantity": item["quantity"],
+            "price": item.get("price", 0.0)
         })
 
     if booking["status"] != "pending":
@@ -127,7 +128,12 @@ async def verify_booking(data: VerifyBookingRequest, current_user: dict = Depend
             "message": f"Notice: Booking is ALREADY {booking['status'].upper()}.",
             "already_confirmed": True,
             "customer_name": customer_name,
-            "items": verified_items
+            "items": verified_items,
+            "booking_id": str(booking["_id"]),
+            "total_amount": booking.get("total_amount", 0),
+            "status": booking["status"],
+            "created_at": booking["created_at"].isoformat(),
+            "expires_at": booking["expires_at"].isoformat()
         }
 
     # Deduct inventory only if it's pending
@@ -143,5 +149,108 @@ async def verify_booking(data: VerifyBookingRequest, current_user: dict = Depend
         "message": "Booking verified and inventory updated successfully!",
         "already_confirmed": False,
         "customer_name": customer_name,
-        "items": verified_items
+        "items": verified_items,
+        "booking_id": str(booking["_id"]),
+        "total_amount": booking.get("total_amount", 0),
+        "status": "confirmed",
+        "created_at": booking["created_at"].isoformat(),
+        "expires_at": booking["expires_at"].isoformat()
     }
+
+@router.get("/my-bookings")
+async def get_my_bookings(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["_id"]
+    
+    bookings_cur = bookings_collection.find({"user_id": user_id}).sort("created_at", -1)
+    
+    results = []
+    from database import medicines_collection
+    async for b in bookings_cur:
+        # Get pharmacy info
+        p_query = {"$or": [{"legacy_id": b["pharmacy_id"]}]}
+        if ObjectId.is_valid(b["pharmacy_id"]):
+            p_query["$or"].append({"_id": ObjectId(b["pharmacy_id"])})
+            
+        pharmacy = await pharmacies_collection.find_one(p_query)
+        pharmacy_name = pharmacy.get("name", "Unknown Pharmacy") if pharmacy else "Unknown Pharmacy"
+        
+        enriched_items = []
+        for item in b.get("items", []):
+            med_query = {"$or": [{"legacy_id": item["medicine_id"]}]}
+            if ObjectId.is_valid(item["medicine_id"]):
+                med_query["$or"].append({"_id": ObjectId(item["medicine_id"])})
+                
+            med = await medicines_collection.find_one(med_query)
+            med_name = med.get("name", "Unknown Medicine") if med else "Unknown Medicine"
+            enriched_items.append({
+                "medicine_id": item["medicine_id"],
+                "medicine_name": med_name,
+                "quantity": item["quantity"],
+                "price": item.get("price", 0.0)
+            })
+            
+        results.append({
+            "id": str(b["_id"]),
+            "pharmacy_name": pharmacy_name,
+            "status": b.get("status", "pending"),
+            "qr_token": b.get("qr_token", ""),
+            "items": enriched_items,
+            "expires_at": b["expires_at"].isoformat() if isinstance(b["expires_at"], datetime) else str(b["expires_at"]),
+            "created_at": b["created_at"].isoformat() if isinstance(b["created_at"], datetime) else str(b["created_at"])
+        })
+        
+    return results
+
+@router.get("/pharmacy-history")
+async def get_pharmacy_booking_history(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "pharmacist":
+        raise HTTPException(status_code=403, detail="Pharmacist privileges required")
+        
+    # Get pharmacist's pharmacy
+    pharmacy = await pharmacies_collection.find_one({"owner_id": current_user["_id"]})
+    if not pharmacy:
+        raise HTTPException(status_code=404, detail="No pharmacy associated with your account")
+        
+    pid = pharmacy.get("legacy_id") or str(pharmacy["_id"])
+    
+    # Get all bookings for this pharmacy, sorted by created_at desc
+    bookings_cur = bookings_collection.find({"pharmacy_id": pid}).sort("created_at", -1)
+    
+    results = []
+    from database import medicines_collection, users_collection
+    async for b in bookings_cur:
+        # Get user info
+        user = await users_collection.find_one({"_id": ObjectId(b["user_id"])})
+        customer_name = user.get("name", "Unknown Customer") if user else "Unknown Customer"
+        
+        enriched_items = []
+        total_amount = 0
+        for item in b.get("items", []):
+            med_query = {"$or": [{"legacy_id": item["medicine_id"]}]}
+            if ObjectId.is_valid(item["medicine_id"]):
+                med_query["$or"].append({"_id": ObjectId(item["medicine_id"])})
+                
+            med = await medicines_collection.find_one(med_query)
+            med_name = med.get("name", "Unknown Medicine") if med else "Unknown Medicine"
+            item_total = item["quantity"] * item.get("price", 0.0)
+            total_amount += item_total
+            enriched_items.append({
+                "medicine_id": item["medicine_id"],
+                "medicine_name": med_name,
+                "quantity": item["quantity"],
+                "price": item.get("price", 0.0),
+                "subtotal": item_total
+            })
+            
+        results.append({
+            "id": str(b["_id"]),
+            "customer_name": customer_name,
+            "status": b.get("status", "pending"),
+            "qr_token": b.get("qr_token", ""),
+            "items": enriched_items,
+            "total_amount": total_amount,
+            "expires_at": b["expires_at"].isoformat() if isinstance(b["expires_at"], datetime) else str(b["expires_at"]),
+            "created_at": b["created_at"].isoformat() if isinstance(b["created_at"], datetime) else str(b["created_at"])
+        })
+        
+    return results
