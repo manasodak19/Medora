@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import Navbar from './components/common/Navbar';
 import LandingPage from './pages/LandingPage';
 import SignUp from './pages/SignUp';
 import SignIn from './pages/SignIn';
 import AdminDashboard from './pages/AdminDashboard';
 import PharmacistDashboard from './pages/PharmacistDashboard';
 import UserDashboard from './pages/UserDashboard';
-import { getMe, logout as apiLogout, getToken } from './api';
-import './index.css';
+import { getMe, logout as apiLogout, getToken } from './services/api';
+import { Toaster } from 'react-hot-toast';
+import './styles/index.css';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -48,19 +49,43 @@ export default function App() {
     return (
       <div style={{
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         height: '100vh',
-        fontSize: 'var(--fs-lg)',
-        color: 'var(--clr-text-muted)',
+        background: 'var(--clr-bg)'
       }}>
-        Loading...
+        <div style={{
+          width: '64px',
+          height: '64px',
+          background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-primary-light))',
+          borderRadius: 'var(--radius-lg)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          boxShadow: '0 8px 24px rgba(13,148,136,0.3)',
+          marginBottom: '1rem',
+          animation: 'pulse 2s infinite'
+        }}>
+          <span style={{ fontSize: '1.5rem' }}>💊</span>
+        </div>
+        <div style={{
+          fontSize: 'var(--fs-xs)',
+          fontWeight: 'var(--fw-bold)',
+          color: 'var(--clr-primary)',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase'
+        }}>
+          Medora is loading...
+        </div>
       </div>
     );
   }
 
   return (
     <BrowserRouter>
+      <Toaster position="top-right" />
       <Navbar user={user} onLogout={handleLogout} />
       <Routes>
         {/* Public */}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Pill, Sun, Moon } from 'lucide-react';
 
 export default function Navbar({ user, onLogout }) {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ export default function Navbar({ user, onLogout }) {
   return (
     <nav className="navbar">
       <Link to="/" className="navbar-logo">
-        <div className="logo-icon">💊</div>
+        <div className="logo-icon"><Pill size={20} /></div>
         MEDORA
       </Link>
 
@@ -40,7 +41,7 @@ export default function Navbar({ user, onLogout }) {
             title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
           >
             <span className={`toggle-icon ${iconSpin ? 'spin-in' : ''}`}>
-              {theme === 'light' ? '🌙' : '☀️'}
+              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
             </span>
           </button>
         </li>

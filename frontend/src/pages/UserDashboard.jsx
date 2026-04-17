@@ -3,7 +3,9 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, LayersControl
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { categories } from '../data/data';
-import { searchMedicines, createBooking, getMyBookings } from '../api';
+import { searchMedicines, createBooking, getMyBookings } from '../services/api';
+import toast from 'react-hot-toast';
+import { SkeletonCard, SkeletonTable, Skeleton } from '../components/common/Skeleton';
 
 // Fix default Leaflet marker icon issue in bundlers
 delete L.Icon.Default.prototype._getIconUrl;
@@ -82,7 +84,7 @@ function LocateButton({ userPos, locationGranted }) {
     if (locationGranted && userPos) {
       map.flyTo(userPos, 16, { animate: true, duration: 1.5 });
     } else {
-      alert("Location permission not granted. Please enable location services.");
+      toast.error("Location permission not granted. Please enable location services.");
     }
   };
 
@@ -396,7 +398,7 @@ export default function UserDashboard() {
       const results = await searchMedicines(q, cat, lat, lng);
       setMapPins(results || []);
     } catch (err) {
-      alert("Failed to fetch medicines: " + err.message);
+      toast.error("Failed to fetch medicines: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -439,7 +441,7 @@ export default function UserDashboard() {
     });
 
     if (items.length === 0) {
-      alert("Please select at least 1 medicine to book.");
+      toast.error("Please select at least 1 medicine to book.");
       return;
     }
 
@@ -447,8 +449,9 @@ export default function UserDashboard() {
       setBookingLoading(true);
       const res = await createBooking(bookingPharmacy.pharmacy.id, items);
       setQrToken(res.qr_token);
+      toast.success("Medicine booked successfully!");
     } catch (err) {
-      alert("Failed to create booking: " + err.message);
+      toast.error("Failed to create booking: " + err.message);
     } finally {
       setBookingLoading(false);
     }
@@ -513,7 +516,7 @@ export default function UserDashboard() {
             </select>
           </div>
           <button type="submit" className="btn btn-primary" style={{ height: '100%' }} disabled={loading}>
-            {loading ? 'Searching...' : 'Search'}
+            {loading ? <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>🔍 Searching...</span> : 'Search'}
           </button>
         </form>
 
@@ -568,9 +571,12 @@ export default function UserDashboard() {
       <div style={{ flex: 1, display: 'flex', gap: '1rem', overflow: 'hidden', minHeight: '500px' }}>
 
         {/* Sidebar List */}
-        {hasSearched && mapPins.length > 0 && (
+        {hasSearched && (
           <div style={{ width: '350px', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', paddingRight: '10px' }}>
-            {mapPins.map(pin => (
+            {loading ? (
+              Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
+            ) : mapPins.length > 0 ? (
+              mapPins.map(pin => (
               <div key={pin.pharmacy.id} style={{ background: 'var(--clr-surface)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                   <h3 style={{ margin: 0, fontSize: '1rem' }}>{pin.pharmacy.name}</h3>
@@ -601,7 +607,12 @@ export default function UserDashboard() {
                   ))}
                 </div>
               </div>
-            ))}
+            ))
+            ) : (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--clr-text-muted)' }}>
+                  No results found.
+                </div>
+            )}
           </div>
         )}
 
@@ -640,7 +651,9 @@ export default function UserDashboard() {
               </p>
             </div>
           ) : loading ? (
-            <div className="loading-spinner" style={{ margin: '5rem auto' }} />
+             <div style={{ padding: '2rem', height: '100%' }}>
+               <Skeleton width="100%" height="100%" borderRadius="var(--radius-lg)" />
+             </div>
           ) : mapPins.length === 0 ? (
             <div className="map-placeholder" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--clr-surface)' }}>
               <div className="placeholder-icon" style={{ fontSize: '3rem', marginBottom: '1rem' }}>😔</div>
@@ -785,11 +798,13 @@ export default function UserDashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h2 style={{ fontSize: 'var(--fs-xl)', margin: 0 }}>Your Booking History</h2>
             <button className="btn btn-secondary btn-sm" onClick={fetchBookings} disabled={loadingBookings}>
-              {loadingBookings ? 'Refreshing...' : '🔄 Refresh'}
+              {loadingBookings ? (
+                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>🔄 Refreshing...</span>
+              ) : '🔄 Refresh'}
             </button>
           </div>
           {loadingBookings ? (
-            <div className="loading-spinner" style={{ margin: '3rem auto' }} />
+            <SkeletonTable rows={4} cols={5} />
           ) : myBookings.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', background: 'var(--clr-surface)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--clr-border)' }}>
               <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>

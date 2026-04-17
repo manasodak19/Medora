@@ -115,7 +115,7 @@ async def search_inventory(
             if med:
                 items.append({
                     "medicine": {
-                        "id": str(med["_id"]),
+                        "id": str(inv["medicine_id"]),
                         "name": med.get("name"),
                         "type": med.get("type", "Tablet"),
                         "rxRequired": med.get("rxRequired", False)

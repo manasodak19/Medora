@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { categories } from '../data/data';
-import { getMyInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem, addInventoryBatch, verifyBooking, getPharmacyBookingHistory } from '../api';
+import { getMyInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem, addInventoryBatch, verifyBooking, getPharmacyBookingHistory } from '../services/api';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import toast from 'react-hot-toast';
+import { SkeletonStats, SkeletonTable } from '../components/common/Skeleton';
 
 const MEDICINE_TYPES = ["Tablet", "Syrup", "Capsule", "Drops", "Injection", "Cream", "Other"];
 
@@ -34,7 +36,7 @@ export default function PharmacistDashboard() {
       const data = await getMyInventory();
       setItems(data || []);
     } catch (err) {
-      alert('Failed to load inventory: ' + err.message);
+      toast.error('Failed to load inventory: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -88,10 +90,11 @@ export default function PharmacistDashboard() {
         const added = await addInventoryItem(payload);
         setItems(prev => [...prev, added]);
       }
+      toast.success(editingId ? 'Medicine updated!' : 'Medicine added!');
       setShowModal(false);
       resetForm();
     } catch (err) {
-      alert('Operation failed: ' + err.message);
+      toast.error('Operation failed: ' + err.message);
     }
   };
 
@@ -100,8 +103,9 @@ export default function PharmacistDashboard() {
       try {
         await deleteInventoryItem(id);
         setItems(prev => prev.filter(item => item.id !== id));
+        toast.success('Medicine deleted.');
       } catch (err) {
-        alert('Delete failed: ' + err.message);
+        toast.error('Delete failed: ' + err.message);
       }
     }
   };
@@ -130,6 +134,7 @@ export default function PharmacistDashboard() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     
+    toast.success('Exporting CSV...');
     const link = document.createElement("a");
     link.href = url;
     link.setAttribute("download", `medora_inventory_${new Date().toISOString().split('T')[0]}.csv`);
@@ -146,7 +151,7 @@ export default function PharmacistDashboard() {
     reader.onload = async (event) => {
       const text = event.target.result;
       const lines = text.split('\n').filter(line => line.trim() !== '');
-      if (lines.length < 2) return alert('Invalid CSV: No data rows found.');
+      if (lines.length < 2) return toast.error('Invalid CSV: No data rows found.');
       
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
       
@@ -159,7 +164,7 @@ export default function PharmacistDashboard() {
       const idxRx = headers.indexOf('rx required');
 
       if (idxName === -1 || idxStock === -1 || idxExpiry === -1) {
-        return alert('CSV must at least contain "Name", "Stock", and "Expiry Date" columns.');
+        return toast.error('CSV must at least contain "Name", "Stock", and "Expiry Date" columns.');
       }
 
       const payloadArray = [];
@@ -182,15 +187,15 @@ export default function PharmacistDashboard() {
         });
       }
 
-      if (payloadArray.length === 0) return alert('No valid rows to process.');
+      if (payloadArray.length === 0) return toast.error('No valid rows to process.');
 
       try {
         setLoading(true);
         await addInventoryBatch(payloadArray);
-        alert(`Successfully imported ${payloadArray.length} items!`);
+        toast.success(`Successfully imported ${payloadArray.length} items!`);
         await loadInventory(); 
       } catch (err) {
-        alert('CSV Import Failed: ' + err.message);
+        toast.error('CSV Import Failed: ' + err.message);
         setLoading(false);
       }
     };
@@ -222,7 +227,7 @@ export default function PharmacistDashboard() {
     { label: 'Expiring Soon (30d)', value: expiringSoonCount, icon: '⏱️', bg: '#ffe8e8', color: '#e53e3e' },
   ];
 
-  if (loading) return <div className="loading-spinner" style={{ margin: '5rem auto' }} />;
+  // Note: Full page loading state is handled below per section for better UX
 
   return (
     <div className="dashboard-layout">
@@ -259,19 +264,23 @@ export default function PharmacistDashboard() {
 
           {/* Dynamic Metrics Grid */}
           <div className="stats-grid" style={{ marginBottom: 'var(--sp-lg)' }}>
-            {statCards.map((card, i) => (
-              <div className="stat-card" key={card.label} style={{ animationDelay: `${i * 0.1}s` }}>
-                <div className="stat-icon" style={{ background: card.bg, color: card.color }}>
-                  {card.icon}
-                </div>
-                <div className="stat-content">
-                  <h3>{card.label}</h3>
-                  <div className="stat-number" style={{ color: card.value > 0 && card.label.includes('Expire') ? card.color : 'inherit' }}>
-                    {card.value}
+            {loading ? (
+              <SkeletonStats />
+            ) : (
+              statCards.map((card, i) => (
+                <div className="stat-card" key={card.label} style={{ animationDelay: `${i * 0.1}s` }}>
+                  <div className="stat-icon" style={{ background: card.bg, color: card.color }}>
+                    {card.icon}
+                  </div>
+                  <div className="stat-content">
+                    <h3>{card.label}</h3>
+                    <div className="stat-number" style={{ color: card.value > 0 && card.label.includes('Expire') ? card.color : 'inherit' }}>
+                      {card.value}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           <div className="section-header">
@@ -296,7 +305,9 @@ export default function PharmacistDashboard() {
             </div>
           </div>
 
-          {items.length === 0 ? (
+          {loading ? (
+            <SkeletonTable rows={8} cols={8} />
+          ) : items.length === 0 ? (
             <div className="empty-state">
               <div className="empty-icon">📦</div>
               <p>No medicines in inventory. Click <strong>Add Medicine</strong> or <strong>Import CSV</strong> to get started.</p>
@@ -748,7 +759,7 @@ function OrderScannerTab({ loadInventory }) {
                   className="btn btn-success"
                   onClick={() => {
                     // Here you could add logic to mark the booking as fulfilled
-                    alert('Booking marked as fulfilled! Medicines dispensed.');
+                    toast.success('Booking marked as fulfilled! Medicines dispensed.');
                     setShowBookingModal(false);
                   }}
                   style={{ background: 'var(--clr-success)', color: 'white' }}
@@ -780,7 +791,7 @@ function OrderHistoryTab() {
       const data = await getPharmacyBookingHistory();
       setBookings(data || []);
     } catch (err) {
-      alert('Failed to load booking history: ' + err.message);
+      toast.error('Failed to load booking history: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -804,7 +815,7 @@ function OrderHistoryTab() {
     return booking.status === filter;
   });
 
-  if (loading) return <div className="loading-spinner" style={{ margin: '5rem auto' }} />;
+  // Loading state for the tab content is handled in the return JSX below per section
 
   return (
     <div className="animate-in">
@@ -825,7 +836,9 @@ function OrderHistoryTab() {
         </div>
       </div>
 
-      {filteredBookings.length === 0 ? (
+      {loading ? (
+        <SkeletonTable rows={5} cols={6} />
+      ) : filteredBookings.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">📋</div>
           <p>No {filter === 'all' ? '' : filter + ' '}orders found.</p>
