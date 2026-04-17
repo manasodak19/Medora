@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Pill, Key, AlertCircle, Loader2 } from 'lucide-react';
-import { signin as apiSignin } from '../api';
+import { signin as apiSignin } from '../services/api';
 
 export default function SignIn({ onAuth }) {
   const navigate = useNavigate();

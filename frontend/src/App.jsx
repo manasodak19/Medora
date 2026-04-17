@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import Navbar from './components/common/Navbar';
 import LandingPage from './pages/LandingPage';
 import SignUp from './pages/SignUp';
 import SignIn from './pages/SignIn';
 import AdminDashboard from './pages/AdminDashboard';
 import PharmacistDashboard from './pages/PharmacistDashboard';
 import UserDashboard from './pages/UserDashboard';
-import { getMe, logout as apiLogout, getToken } from './api';
+import { getMe, logout as apiLogout, getToken } from './services/api';
 import { Toaster } from 'react-hot-toast';
-import './index.css';
+import './styles/index.css';
 
 export default function App() {
   const [user, setUser] = useState(null);

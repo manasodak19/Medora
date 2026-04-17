@@ -3,9 +3,9 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, LayersControl
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { categories } from '../data/data';
-import { searchMedicines, createBooking, getMyBookings } from '../api';
+import { searchMedicines, createBooking, getMyBookings } from '../services/api';
 import toast from 'react-hot-toast';
-import { SkeletonCard, SkeletonTable, Skeleton } from '../components/Skeleton';
+import { SkeletonCard, SkeletonTable, Skeleton } from '../components/common/Skeleton';
 
 // Fix default Leaflet marker icon issue in bundlers
 delete L.Icon.Default.prototype._getIconUrl;
