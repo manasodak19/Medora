@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks
 from bson import ObjectId
 from typing import List
 from datetime import datetime
@@ -6,6 +6,7 @@ from datetime import datetime
 from database import pharmacies_collection, users_collection, inventory_collection
 from models import PharmacyResponse, PharmacyStatusUpdate, AdminStats
 from auth import get_current_user
+from email_utils import send_pharmacy_status_email
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -70,7 +71,7 @@ async def get_admin_stats(admin_user: dict = Depends(require_admin)):
     )
 
 @router.patch("/pharmacies/{pharmacy_id}/status", response_model=PharmacyResponse)
-async def update_pharmacy_status(pharmacy_id: str, data: PharmacyStatusUpdate, admin_user: dict = Depends(require_admin)):
+async def update_pharmacy_status(pharmacy_id: str, data: PharmacyStatusUpdate, background_tasks: BackgroundTasks, admin_user: dict = Depends(require_admin)):
     if not ObjectId.is_valid(pharmacy_id):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid pharmacy ID")
 
@@ -95,4 +96,9 @@ async def update_pharmacy_status(pharmacy_id: str, data: PharmacyStatusUpdate, a
     
     # Refetch
     updated = await pharmacies_collection.find_one({"_id": ObjectId(pharmacy_id)})
+    
+    # Send email notification in the background
+    if new_status in ["verified", "banned"]:
+        background_tasks.add_task(send_pharmacy_status_email, updated["email"], new_status, updated["name"])
+        
     return doc_to_pharmacy_response(updated)
