@@ -207,6 +207,10 @@ img { max-width: 100%; display: block; }
   100% { transform: rotate(360deg); }
 }
 
+.spin {
+  animation: spin-ring 1s linear infinite;
+}
+
 @keyframes gradient-shift {
   0%   { background-position: 0% 50%; }
   50%  { background-position: 100% 50%; }
@@ -740,6 +744,10 @@ select.input-field {
 
 .role-toggle button {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 0.5rem var(--sp-md);
   border: none;
   background: transparent;

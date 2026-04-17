@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Pill, Key, AlertCircle, Loader2 } from 'lucide-react';
 import { signin as apiSignin } from '../api';
 
 export default function SignIn({ onAuth }) {
@@ -45,14 +46,18 @@ export default function SignIn({ onAuth }) {
     <div className="auth-page">
       <div className="auth-card">
         <div style={{ textAlign: 'center', marginBottom: 'var(--sp-md)' }}>
-          <span style={{ fontSize: '2rem' }}>💊</span>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+            <div style={{ width: '64px', height: '64px', background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-primary-light))', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 24px rgba(13,148,136,0.3)' }}>
+              <Pill size={36} />
+            </div>
+          </div>
           <h1>Welcome Back</h1>
           <p className="auth-subtitle">Sign in to your MEDORA account</p>
         </div>
 
         {error && (
-          <div className="inline-alert" style={{ background: 'var(--clr-danger-bg)', color: 'var(--clr-danger)', marginBottom: 'var(--sp-md)' }}>
-            ⚠️ {error}
+          <div className="inline-alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--clr-danger-bg)', color: 'var(--clr-danger)', marginBottom: 'var(--sp-md)', padding: 'var(--sp-sm) var(--sp-md)', borderRadius: 'var(--radius-md)', fontSize: 'var(--fs-sm)' }}>
+            <AlertCircle size={18} style={{ flexShrink: 0 }} /> <span>{error}</span>
           </div>
         )}
 
@@ -89,7 +94,7 @@ export default function SignIn({ onAuth }) {
             style={{ width: '100%' }}
             disabled={loading}
           >
-            {loading ? '⏳ Signing in...' : 'Sign In'}
+            {loading ? <><Loader2 size={18} className="spin" /> Signing in...</> : 'Sign In'}
           </button>
         </form>
 
@@ -102,9 +107,9 @@ export default function SignIn({ onAuth }) {
           fontSize: 'var(--fs-xs)',
           color: 'var(--clr-text-muted)',
         }}>
-          <strong style={{ color: 'var(--clr-text)', display: 'block', marginBottom: '6px' }}>
-            🔑 Quick Login (Demo)
-          </strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--clr-text)', marginBottom: '6px' }}>
+            <Key size={16} /> <strong>Quick Login (Demo)</strong>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
             <span><strong>Admin:</strong> admin@medora.com / admin123</span>
           </div>

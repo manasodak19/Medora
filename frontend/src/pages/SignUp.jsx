@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Pill, User, Stethoscope, Store, AlertCircle, Loader2 } from 'lucide-react';
 import { signup as apiSignup } from '../api';
 
 export default function SignUp({ onAuth }) {
@@ -94,15 +95,19 @@ export default function SignUp({ onAuth }) {
     <div className="auth-page">
       <div className="auth-card">
         <div style={{ textAlign: 'center', marginBottom: 'var(--sp-md)' }}>
-          <span style={{ fontSize: '2rem' }}>💊</span>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+            <div style={{ width: '64px', height: '64px', background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-primary-light))', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 24px rgba(13,148,136,0.3)' }}>
+              <Pill size={36} />
+            </div>
+          </div>
           <h1>Create Account</h1>
           <p className="auth-subtitle">Join MEDORA and find medicines near you</p>
         </div>
 
         {/* Server Error */}
         {serverError && (
-          <div className="inline-alert" style={{ background: 'var(--clr-danger-bg)', color: 'var(--clr-danger)', marginBottom: 'var(--sp-md)' }}>
-            ⚠️ {serverError}
+          <div className="inline-alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--clr-danger-bg)', color: 'var(--clr-danger)', marginBottom: 'var(--sp-md)', padding: 'var(--sp-sm) var(--sp-md)', borderRadius: 'var(--radius-md)', fontSize: 'var(--fs-sm)' }}>
+            <AlertCircle size={18} style={{ flexShrink: 0 }} /> <span>{serverError}</span>
           </div>
         )}
 
@@ -114,7 +119,7 @@ export default function SignUp({ onAuth }) {
             type="button"
             disabled={loading}
           >
-            👤 User
+            <User size={16} /> User
           </button>
           <button
             className={role === 'pharmacist' ? 'active' : ''}
@@ -122,7 +127,7 @@ export default function SignUp({ onAuth }) {
             type="button"
             disabled={loading}
           >
-            🏥 Pharmacist
+            <Stethoscope size={16} /> Pharmacist
           </button>
         </div>
 
@@ -188,7 +193,9 @@ export default function SignUp({ onAuth }) {
           {/* Pharmacist-specific fields */}
           {role === 'pharmacist' && (
             <div className="pharmacist-fields">
-              <span className="fields-title">🏥 Pharmacy Details</span>
+              <span className="fields-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Store size={18} /> Pharmacy Details
+              </span>
 
               <div className="input-group">
                 <label htmlFor="pharmacy-name">Pharmacy Name</label>
@@ -303,7 +310,7 @@ export default function SignUp({ onAuth }) {
             style={{ width: '100%' }}
             disabled={loading}
           >
-            {loading ? '⏳ Creating Account...' : 'Create Account'}
+            {loading ? <><Loader2 size={18} className="spin" /> Creating Account...</> : 'Create Account'}
           </button>
         </form>
 
