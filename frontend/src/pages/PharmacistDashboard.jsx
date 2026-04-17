@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { categories } from '../data/data';
-import { getMyInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem, addInventoryBatch, verifyBooking } from '../api';
+import { getMyInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem, addInventoryBatch, verifyBooking, getPharmacyBookingHistory } from '../api';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 
 const MEDICINE_TYPES = ["Tablet", "Syrup", "Capsule", "Drops", "Injection", "Cream", "Other"];
@@ -241,6 +241,12 @@ export default function PharmacistDashboard() {
           >
             📷 Verify Orders
           </li>
+          <li 
+            className={activeTab === 'history' ? 'active' : ''} 
+            onClick={() => setActiveTab('history')}
+          >
+            📋 Order History
+          </li>
         </ul>
       </aside>
 
@@ -477,6 +483,9 @@ export default function PharmacistDashboard() {
         {/* Scanner Component inside Tab */}
         {activeTab === 'orders' && <OrderScannerTab loadInventory={loadInventory} />}
         
+        {/* Order History Tab */}
+        {activeTab === 'history' && <OrderHistoryTab />}
+        
       </main>
     </div>
   );
@@ -486,6 +495,8 @@ function OrderScannerTab({ loadInventory }) {
   const [tokenInput, setTokenInput] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [bookingDetails, setBookingDetails] = useState(null);
   const scannerRef = useRef(null);
   const isProcessingRef = useRef(false);
 
@@ -519,12 +530,26 @@ function OrderScannerTab({ loadInventory }) {
     setFeedback(null);
     try {
       const res = await verifyBooking(token);
-      setFeedback({ 
-          type: res.already_confirmed ? 'warning' : 'success', 
-          message: res.message, 
-          customer: res.customer_name, 
-          items: res.items || [] 
+
+      setFeedback({
+          type: res.already_confirmed ? 'warning' : 'success',
+          message: res.message
       });
+
+      // Show detailed booking modal
+      const bookingData = {
+        customer_name: res.customer_name || 'Unknown Customer',
+        items: res.items || [],
+        booking_id: res.booking_id || 'N/A',
+        total_amount: res.total_amount || 0,
+        status: res.status || 'unknown',
+        created_at: res.created_at || new Date().toISOString(),
+        expires_at: res.expires_at || new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        already_confirmed: res.already_confirmed || false
+      };
+      setBookingDetails(bookingData);
+      setShowBookingModal(true);
+
       if (scannerRef.current) scannerRef.current.clear();
       loadInventory();
       setTokenInput('');
@@ -545,25 +570,9 @@ function OrderScannerTab({ loadInventory }) {
 
       <div style={{ maxWidth: '600px', background: 'var(--clr-surface)', padding: 'var(--sp-xl)', borderRadius: 'var(--radius-lg)' }}>
         {feedback && (
-          <div className={feedback.type === 'warning' ? 'alert' : `alert ${feedback.type === 'success' ? 'alert-success' : 'alert-danger'}`} 
+          <div className={feedback.type === 'warning' ? 'alert' : `alert ${feedback.type === 'success' ? 'alert-success' : 'alert-danger'}`}
                style={feedback.type === 'warning' ? { marginBottom: 'var(--sp-md)', background: 'var(--clr-warning-bg)', color: 'var(--clr-warning)' } : { marginBottom: 'var(--sp-md)' }}>
             <div style={{ fontWeight: 'bold' }}>{feedback.message}</div>
-            
-            {feedback.customer && (
-              <div style={{ marginTop: '0.5rem', fontWeight: 'bold', fontSize: 'var(--fs-lg)', color: 'var(--clr-primary-dark)' }}>
-                 👤 Customer: {feedback.customer}
-              </div>
-            )}
-            {feedback.items && feedback.items.length > 0 && (
-               <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: 'rgba(255,255,255,0.7)', borderRadius: 'var(--radius-md)' }}>
-                 <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold', fontSize: 'var(--fs-sm)' }}>Medicines to give:</p>
-                 <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: 'var(--fs-sm)' }}>
-                   {feedback.items.map((item, idx) => (
-                     <li key={idx}><strong>{item.quantity}x</strong> {item.name}</li>
-                   ))}
-                 </ul>
-               </div>
-            )}
           </div>
         )}
 
@@ -591,6 +600,287 @@ function OrderScannerTab({ loadInventory }) {
           </div>
         </div>
       </div>
+
+      {/* Booking Details Modal */}
+      {showBookingModal && bookingDetails && (
+        <div className="modal-overlay" onClick={() => setShowBookingModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '80vh', overflow: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ margin: 0, color: 'var(--clr-primary)' }}>📋 Booking Details</h2>
+              <button
+                onClick={() => setShowBookingModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  color: 'var(--clr-text-muted)',
+                  padding: '0.25rem'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Customer Info */}
+            <div style={{
+              background: 'var(--clr-background)',
+              padding: '1rem',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: '1rem',
+              border: '1px solid var(--clr-border)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.2rem' }}>👤</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--clr-primary-dark)' }}>
+                  {bookingDetails.customer_name || 'Unknown Customer'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--clr-text-muted)' }}>
+                <span>🆔 Booking ID: <code>{bookingDetails.booking_id || 'N/A'}</code></span>
+                <span style={{
+                  color: bookingDetails.status === 'confirmed' ? 'var(--clr-success)' :
+                         bookingDetails.status === 'pending' ? 'var(--clr-warning)' : 'var(--clr-danger)',
+                  fontWeight: 'bold'
+                }}>
+                  {(bookingDetails.status || 'unknown').toUpperCase()}
+                </span>
+              </div>
+            </div>
+
+            {/* Booking Items */}
+            <div style={{
+              background: 'var(--clr-background)',
+              padding: '1rem',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: '1rem',
+              border: '1px solid var(--clr-border)'
+            }}>
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--clr-text)' }}>💊 Medicines to Dispense</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {(bookingDetails.items || []).map((item, index) => (
+                  <div key={index} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0.75rem',
+                    background: 'var(--clr-surface)',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--clr-border)'
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{item.name || 'Unknown Medicine'}</div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--clr-text-muted)' }}>
+                        ₹{item.price || 0} per unit
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{
+                        fontSize: '1.1rem',
+                        fontWeight: 'bold',
+                        color: 'var(--clr-primary)',
+                        marginBottom: '0.25rem'
+                      }}>
+                        {item.quantity || 0}x
+                      </div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--clr-success)' }}>
+                        ₹{(item.price || 0) * (item.quantity || 0)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total Amount */}
+              <div style={{
+                marginTop: '1rem',
+                paddingTop: '1rem',
+                borderTop: '2px solid var(--clr-border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '1.2rem',
+                fontWeight: 'bold',
+                color: 'var(--clr-primary-dark)'
+              }}>
+                <span>Total Amount:</span>
+                <span>₹{bookingDetails.total_amount || (bookingDetails.items || []).reduce((total, item) => total + ((item.price || 0) * (item.quantity || 0)), 0)}</span>
+              </div>
+            </div>
+
+            {/* Booking Timestamps */}
+            <div style={{
+              background: 'var(--clr-background)',
+              padding: '1rem',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: '1rem',
+              border: '1px solid var(--clr-border)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                <div>
+                  <span style={{ color: 'var(--clr-text-muted)' }}>📅 Created:</span>
+                  <div style={{ fontWeight: '600', color: 'var(--clr-text)' }}>
+                    {bookingDetails.created_at ? new Date(bookingDetails.created_at).toLocaleString() : 'Unknown'}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--clr-text-muted)' }}>⏰ Expires:</span>
+                  <div style={{
+                    fontWeight: '600',
+                    color: bookingDetails.expires_at && new Date(bookingDetails.expires_at) > new Date() ? 'var(--clr-text)' : 'var(--clr-danger)'
+                  }}>
+                    {bookingDetails.expires_at ? new Date(bookingDetails.expires_at).toLocaleString() : 'Unknown'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowBookingModal(false)}
+              >
+                Close
+              </button>
+              {!bookingDetails.already_confirmed && (
+                <button
+                  className="btn btn-success"
+                  onClick={() => {
+                    // Here you could add logic to mark the booking as fulfilled
+                    alert('Booking marked as fulfilled! Medicines dispensed.');
+                    setShowBookingModal(false);
+                  }}
+                  style={{ background: 'var(--clr-success)', color: 'white' }}
+                >
+                  ✅ Mark as Fulfilled
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+function OrderHistoryTab() {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all'); // all, pending, confirmed, expired
+
+  useEffect(() => {
+    loadBookingHistory();
+  }, []);
+
+  const loadBookingHistory = async () => {
+    try {
+      setLoading(true);
+      const data = await getPharmacyBookingHistory();
+      setBookings(data || []);
+    } catch (err) {
+      alert('Failed to load booking history: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'confirmed':
+        return <span className="badge badge-success">✅ Confirmed</span>;
+      case 'pending':
+        return <span className="badge badge-warning">⏳ Pending</span>;
+      case 'expired':
+        return <span className="badge badge-danger">❌ Expired</span>;
+      default:
+        return <span className="badge badge-secondary">{status}</span>;
+    }
+  };
+
+  const filteredBookings = bookings.filter(booking => {
+    if (filter === 'all') return true;
+    return booking.status === filter;
+  });
+
+  if (loading) return <div className="loading-spinner" style={{ margin: '5rem auto' }} />;
+
+  return (
+    <div className="animate-in">
+      <div className="section-header">
+        <h2>Order History</h2>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <label style={{ fontSize: '0.9rem', color: 'var(--clr-text-muted)' }}>Filter:</label>
+          <select 
+            value={filter} 
+            onChange={e => setFilter(e.target.value)}
+            style={{ padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--clr-border)' }}
+          >
+            <option value="all">All Orders</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="expired">Expired</option>
+          </select>
+        </div>
+      </div>
+
+      {filteredBookings.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">📋</div>
+          <p>No {filter === 'all' ? '' : filter + ' '}orders found.</p>
+        </div>
+      ) : (
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Status</th>
+                <th>Items</th>
+                <th>Total Amount</th>
+                <th>Created</th>
+                <th>Expires</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredBookings.map(booking => (
+                <tr key={booking.id}>
+                  <td>
+                    <div style={{ fontWeight: '600' }}>{booking.customer_name}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)' }}>
+                      ID: {booking.id.slice(-8)}
+                    </div>
+                  </td>
+                  <td>{getStatusBadge(booking.status)}</td>
+                  <td>
+                    <div style={{ maxWidth: '200px' }}>
+                      {booking.items.map((item, idx) => (
+                        <div key={idx} style={{ fontSize: '0.85rem', marginBottom: '0.25rem' }}>
+                          {item.medicine_name} ({item.quantity}x)
+                        </div>
+                      ))}
+                    </div>
+                  </td>
+                  <td style={{ fontWeight: 'bold', color: 'var(--clr-primary)' }}>
+                    ₹{booking.total_amount || booking.items.reduce((total, item) => total + (item.subtotal || 0), 0)}
+                  </td>
+                  <td style={{ fontSize: '0.85rem' }}>
+                    {new Date(booking.created_at).toLocaleDateString()}
+                    <br />
+                    {new Date(booking.created_at).toLocaleTimeString()}
+                  </td>
+                  <td style={{ fontSize: '0.85rem' }}>
+                    {new Date(booking.expires_at).toLocaleDateString()}
+                    <br />
+                    {new Date(booking.expires_at).toLocaleTimeString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
