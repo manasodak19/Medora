@@ -2,7 +2,6 @@
 
 **Medora** is a state-of-the-art healthcare solution designed to bridge the gap between patients and pharmacies. It empowers users to find life-saving medications in real-time while providing pharmacists with a premium dashboard to manage their digital store.
 
-
 <img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/492d9378-37b0-4af0-8a26-ffe570b36955" />
 
 ---
@@ -38,7 +37,6 @@
 - **Database:** MongoDB (Atlas/Local)
 - **Driver:** Motor (Asynchronous MongoDB)
 - **Security:** JWT (JSON Web Tokens) & Passlib (Bcrypt)
-
 ---
 
 ## 🚀 Quick Start
