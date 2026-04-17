@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Pill, User, Stethoscope, Store, AlertCircle, Loader2 } from 'lucide-react';
 import { signup as apiSignup } from '../api';
+import toast from 'react-hot-toast';
 
 export default function SignUp({ onAuth }) {
   const navigate = useNavigate();
@@ -71,7 +72,7 @@ export default function SignUp({ onAuth }) {
       const user = data.user;
 
       if (user.status === 'pending') {
-        alert('Registration successful! Your account is pending admin verification. You cannot login yet.');
+        toast.success('Registration successful! Your account is pending admin verification.');
         navigate('/signin');
         return;
       }

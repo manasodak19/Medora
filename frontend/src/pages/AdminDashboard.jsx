@@ -4,10 +4,13 @@ import {
   Users, Hospital, Pill, Clock, LayoutDashboard, Store, 
   CheckCircle, XCircle, Ban, Check, X, RotateCcw 
 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { SkeletonStats, SkeletonTable, Skeleton } from '../components/Skeleton';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [pharmacyList, setPharmacyList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalUsers: '…',
     totalPharmacies: '…',
@@ -18,6 +21,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        setLoading(true);
         const [pharmacies, liveStats] = await Promise.all([
           getPharmacies(),
           getAdminStats(),
@@ -25,8 +29,9 @@ export default function AdminDashboard() {
         setPharmacyList(pharmacies || []);
         setStats(liveStats);
       } catch (err) {
-        console.error(err);
-        alert('Failed to load admin data: ' + err.message);
+        toast.error('Failed to load admin data: ' + err.message);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -35,12 +40,12 @@ export default function AdminDashboard() {
 
   const updatePharmacyStatus = async (id, status) => {
     try {
-      await apiUpdatePharmacy(id, status);
       setPharmacyList(prev =>
         prev.map(p => (p.id === id ? { ...p, status } : p))
       );
+      toast.success(`Pharmacy is now ${status}`);
     } catch (err) {
-      alert('Update failed: ' + err.message);
+      toast.error('Update failed: ' + err.message);
     }
   };
 
@@ -115,21 +120,25 @@ export default function AdminDashboard() {
             <h2>Dashboard Overview</h2>
 
             <div className="stats-grid">
-              {statCards.map((card, i) => (
-                <div
-                  className="stat-card"
-                  key={card.label}
-                  style={{ animationDelay: `${i * 0.1}s` }}
-                >
-                  <div className="stat-icon" style={{ background: card.bg, color: card.color }}>
-                    {card.icon}
+              {loading ? (
+                <SkeletonStats />
+              ) : (
+                statCards.map((card, i) => (
+                  <div
+                    className="stat-card"
+                    key={card.label}
+                    style={{ animationDelay: `${i * 0.1}s` }}
+                  >
+                    <div className="stat-icon" style={{ background: card.bg, color: card.color }}>
+                      {card.icon}
+                    </div>
+                    <div className="stat-content">
+                      <h3>{card.label}</h3>
+                      <div className="stat-number">{card.value}</div>
+                    </div>
                   </div>
-                  <div className="stat-content">
-                    <h3>{card.label}</h3>
-                    <div className="stat-number">{card.value}</div>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         )}
@@ -143,7 +152,10 @@ export default function AdminDashboard() {
               </span>
             </div>
 
-            <div className="table-container">
+            {loading ? (
+              <SkeletonTable rows={5} cols={6} />
+            ) : (
+              <div className="table-container">
               <table className="data-table">
                 <thead>
                   <tr>
@@ -232,8 +244,9 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      )}
       </main>
     </div>
   );
