@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { getPharmacies, updatePharmacyStatus as apiUpdatePharmacy, getAdminStats } from '../api';
+import { getPharmacies, updatePharmacyStatus as apiUpdatePharmacy, getAdminStats } from '../services/api';
 import { 
   Users, Hospital, Pill, Clock, LayoutDashboard, Store, 
   CheckCircle, XCircle, Ban, Check, X, RotateCcw, 
   Activity, Sparkles, MapPin, Timer, ClipboardList, ShieldCheck
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { SkeletonStats, SkeletonTable, Skeleton, SkeletonCard } from '../components/Skeleton';
+import { SkeletonStats, SkeletonTable, Skeleton, SkeletonCard } from '../components/common/Skeleton';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');

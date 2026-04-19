@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { categories } from '../data/data';
-import { getMyInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem, addInventoryBatch, verifyBooking, getPharmacyBookingHistory } from '../api';
+import { getMyInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem, addInventoryBatch, verifyBooking, getPharmacyBookingHistory } from '../services/api';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import toast from 'react-hot-toast';
-import { SkeletonStats, SkeletonTable } from '../components/Skeleton';
+import { SkeletonStats, SkeletonTable } from '../components/common/Skeleton';
 
 const MEDICINE_TYPES = ["Tablet", "Syrup", "Capsule", "Drops", "Injection", "Cream", "Other"];
 
