@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { categories } from '../data/data';
 import { getMyInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem, addInventoryBatch, verifyBooking, getPharmacyBookingHistory } from '../services/api';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import { motion, AnimatePresence } from 'framer-motion';
+import MotionContainer from '../components/common/MotionContainer';
 import toast from 'react-hot-toast';
 import { SkeletonStats, SkeletonTable } from '../components/common/Skeleton';
 
@@ -234,24 +236,30 @@ export default function PharmacistDashboard() {
       {/* Sidebar */}
       <aside className="dashboard-sidebar">
         <ul className="sidebar-nav">
-          <li 
+          <motion.li 
             className={activeTab === 'inventory' ? 'active' : ''} 
             onClick={() => setActiveTab('inventory')}
+            whileHover={{ x: 5 }}
+            whileTap={{ scale: 0.95 }}
           >
             📦 Inventory
-          </li>
-          <li 
+          </motion.li>
+          <motion.li 
             className={activeTab === 'orders' ? 'active' : ''} 
             onClick={() => setActiveTab('orders')}
+            whileHover={{ x: 5 }}
+            whileTap={{ scale: 0.95 }}
           >
             📷 Verify Orders
-          </li>
-          <li 
+          </motion.li>
+          <motion.li 
             className={activeTab === 'history' ? 'active' : ''} 
             onClick={() => setActiveTab('history')}
+            whileHover={{ x: 5 }}
+            whileTap={{ scale: 0.95 }}
           >
             📋 Order History
-          </li>
+          </motion.li>
         </ul>
       </aside>
 
@@ -268,17 +276,23 @@ export default function PharmacistDashboard() {
               <SkeletonStats />
             ) : (
               statCards.map((card, i) => (
-                <div className="stat-card" key={card.label} style={{ animationDelay: `${i * 0.1}s` }}>
-                  <div className="stat-icon" style={{ background: card.bg, color: card.color }}>
-                    {card.icon}
-                  </div>
-                  <div className="stat-content">
-                    <h3>{card.label}</h3>
-                    <div className="stat-number" style={{ color: card.value > 0 && card.label.includes('Expire') ? card.color : 'inherit' }}>
-                      {card.value}
+                <MotionContainer key={card.label} delay={i * 0.1}>
+                  <motion.div 
+                    className="stat-card" 
+                    whileHover={{ scale: 1.05, translateY: -5 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <div className="stat-icon" style={{ background: card.bg, color: card.color }}>
+                      {card.icon}
                     </div>
-                  </div>
-                </div>
+                    <div className="stat-content">
+                      <h3>{card.label}</h3>
+                      <div className="stat-number" style={{ color: card.value > 0 && card.label.includes('Expire') ? card.color : 'inherit' }}>
+                        {card.value}
+                      </div>
+                    </div>
+                  </motion.div>
+                </MotionContainer>
               ))
             )}
           </div>
@@ -328,10 +342,20 @@ export default function PharmacistDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map(item => {
+                  {items.map((item, idx) => {
                     const expiring = isExpiringSoon(item.expiryDate);
                     return (
-                      <tr key={item.id}>
+                      <motion.tr 
+                        key={item.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ 
+                          delay: idx * 0.08,
+                          duration: 0.8,
+                          ease: [0.22, 1, 0.36, 1]
+                        }}
+                      >
                         <td><strong>{item.name}</strong></td>
                         <td>
                           <span style={{ fontSize: 'var(--fs-xs)', background: 'var(--clr-surface-alt)', padding: '2px 6px', borderRadius: '4px' }}>
@@ -363,7 +387,7 @@ export default function PharmacistDashboard() {
                             </button>
                           </div>
                         </td>
-                      </tr>
+                      </motion.tr>
                     );
                   })}
                 </tbody>
@@ -373,9 +397,23 @@ export default function PharmacistDashboard() {
         </div>
 
         {/* Add/Edit Modal */}
+        <AnimatePresence>
         {showModal && (
-          <div className="modal-overlay" onClick={() => setShowModal(false)}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
+          <motion.div 
+            className="modal-overlay" 
+            onClick={() => setShowModal(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div 
+              className="modal" 
+              onClick={e => e.stopPropagation()}
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            >
               <h2>{editingId ? '✏️ Edit Medicine' : '💊 Add Medicine'}</h2>
 
               <form className="auth-form" onSubmit={handleSave}>
@@ -485,9 +523,10 @@ export default function PharmacistDashboard() {
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
+        </AnimatePresence>
           </>
         )}
         
@@ -579,13 +618,21 @@ function OrderScannerTab({ loadInventory }) {
         Scan the customer's QR code or enter the code manually to verify their booking.
       </p>
 
-      <div style={{ maxWidth: '600px', background: 'var(--clr-surface)', padding: 'var(--sp-xl)', borderRadius: 'var(--radius-lg)' }}>
-        {feedback && (
-          <div className={feedback.type === 'warning' ? 'alert' : `alert ${feedback.type === 'success' ? 'alert-success' : 'alert-danger'}`}
-               style={feedback.type === 'warning' ? { marginBottom: 'var(--sp-md)', background: 'var(--clr-warning-bg)', color: 'var(--clr-warning)' } : { marginBottom: 'var(--sp-md)' }}>
-            <div style={{ fontWeight: 'bold' }}>{feedback.message}</div>
-          </div>
-        )}
+      <div style={{ maxWidth: '600px', background: 'var(--clr-surface)', padding: 'var(--sp-xl)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)' }}>
+        <AnimatePresence mode="wait">
+          {feedback && (
+            <motion.div 
+              key={feedback.message}
+              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+              animate={{ opacity: 1, height: 'auto', marginBottom: 'var(--sp-md)' }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+              className={feedback.type === 'warning' ? 'alert' : `alert ${feedback.type === 'success' ? 'alert-success' : 'alert-danger'}`}
+              style={feedback.type === 'warning' ? { background: 'var(--clr-warning-bg)', color: 'var(--clr-warning)', overflow: 'hidden' } : { overflow: 'hidden' }}
+            >
+              <div style={{ fontWeight: 'bold' }}>{feedback.message}</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div id="qr-reader" style={{ width: '100%', marginBottom: '1rem', border: '1px solid var(--clr-border)', background: '#fff' }}></div>
 
@@ -613,9 +660,23 @@ function OrderScannerTab({ loadInventory }) {
       </div>
 
       {/* Booking Details Modal */}
+      <AnimatePresence>
       {showBookingModal && bookingDetails && (
-        <div className="modal-overlay" onClick={() => setShowBookingModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '80vh', overflow: 'auto' }}>
+        <motion.div 
+          className="modal-overlay" 
+          onClick={() => setShowBookingModal(false)}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div 
+            className="modal" 
+            onClick={e => e.stopPropagation()} 
+            style={{ maxWidth: '600px', maxHeight: '80vh', overflow: 'auto' }}
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h2 style={{ margin: 0, color: 'var(--clr-primary)' }}>📋 Booking Details</h2>
               <button
@@ -768,9 +829,10 @@ function OrderScannerTab({ loadInventory }) {
                 </button>
               )}
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
     </div>
   );
@@ -857,8 +919,18 @@ function OrderHistoryTab() {
               </tr>
             </thead>
             <tbody>
-              {filteredBookings.map(booking => (
-                <tr key={booking.id}>
+              {filteredBookings.map((booking, idx) => (
+                <motion.tr 
+                  key={booking.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ 
+                    delay: idx * 0.08, 
+                    duration: 0.8,
+                    ease: [0.22, 1, 0.36, 1]
+                  }}
+                >
                   <td>
                     <div style={{ fontWeight: '600' }}>{booking.customer_name}</div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)' }}>
@@ -888,7 +960,7 @@ function OrderHistoryTab() {
                     <br />
                     {new Date(booking.expires_at).toLocaleTimeString()}
                   </td>
-                </tr>
+                </motion.tr>
               ))}
             </tbody>
           </table>

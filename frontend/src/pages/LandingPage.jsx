@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, Map as MapIcon, PhoneCall, ShieldCheck, BadgeCheck, Stethoscope, Pill } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import MotionContainer from '../components/common/MotionContainer';
 
 export default function LandingPage() {
   const [currentMedicineIndex, setCurrentMedicineIndex] = useState(0);
@@ -9,38 +11,87 @@ export default function LandingPage() {
   useEffect(() => {
     const intervalId = setInterval(() => {
       setCurrentMedicineIndex((prev) => (prev + 1) % medicines.length);
-    }, 2500);
+    }, 3500);
     return () => clearInterval(intervalId);
   }, []);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.25,
+        delayChildren: 0.3
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 30, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
+  };
 
   return (
     <div className="landing-page">
       {/* Hero Section */}
       <section className="hero">
-        <div className="hero-content">
-          <h1>
+        <motion.div 
+          className="hero-content"
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+        >
+          <motion.h1 variants={itemVariants}>
             Find Your <br />
-            <span>{medicines[currentMedicineIndex]}</span><span className="typing-cursor"></span><br />
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={medicines[currentMedicineIndex]}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.6 }}
+                style={{ display: 'inline-block', color: 'var(--clr-primary)' }}
+              >
+                {medicines[currentMedicineIndex]}
+              </motion.span>
+            </AnimatePresence>
+            <span className="typing-cursor"></span><br />
             Right on Time
-          </h1>
-          <p>
+          </motion.h1>
+          <motion.p variants={itemVariants}>
             MEDORA connects you with nearby pharmacies in real-time. Search any
             medicine, see live stock availability on a map, and get directions
             — all in one place.
-          </p>
-          <div className="hero-buttons">
+          </motion.p>
+          <motion.div className="hero-buttons" variants={itemVariants}>
             <Link to="/signup" className="btn btn-primary btn-lg">
               🚀 Create Account
             </Link>
             <Link to="/signin" className="btn btn-secondary btn-lg">
               Sign In
             </Link>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Hero Mockup Element */}
-        <div className="hero-mockup-container">
-          <div className="hero-mockup">
+        <motion.div 
+          className="hero-mockup-container"
+          initial={{ opacity: 0, scale: 0.9, x: 50, rotate: 5 }}
+          animate={{ opacity: 1, scale: 1, x: 0, rotate: 0 }}
+          transition={{ duration: 1, ease: "easeOut", delay: 0.4 }}
+        >
+          <motion.div 
+            className="hero-mockup"
+            animate={{ 
+              y: [0, -15, 0],
+              rotate: [0, 1, 0]
+            }}
+            transition={{ 
+              duration: 5, 
+              repeat: Infinity, 
+              ease: "easeInOut" 
+            }}
+          >
             <div className="mockup-header">
               <span className="mockup-status">
                 <span className="pulse-dot"></span> In Stock Nearby
@@ -56,93 +107,72 @@ export default function LandingPage() {
                 <p>City Pharmacy • 0.8 km away</p>
               </div>
             </div>
-            <div className="mockup-badge">
+            <motion.div 
+              className="mockup-badge"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
               <MapPin size={18} color="var(--clr-primary)" />
               <span>Navigate</span>
-            </div>
-          </div>
-        </div>
+            </motion.div>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* How It Works */}
       <section className="how-it-works">
-        <h2>How It Works</h2>
+        <MotionContainer>
+          <h2>How It Works</h2>
+        </MotionContainer>
         <div className="steps-grid">
-          <div className="step-item animate-in" style={{ animationDelay: '0.1s' }}>
+          <MotionContainer delay={0.1} className="step-item">
             <div className="step-number">1</div>
             <h3>Search Medicine</h3>
             <p>Type the name of any medicine or browse by category to find what you need.</p>
-          </div>
-          <div className="step-item animate-in" style={{ animationDelay: '0.3s' }}>
+          </MotionContainer>
+          <MotionContainer delay={0.3} className="step-item">
             <div className="step-number">2</div>
             <h3>View Nearby Stock</h3>
             <p>See which nearby pharmacies have it in stock with live map pins and distance info.</p>
-          </div>
-          <div className="step-item animate-in" style={{ animationDelay: '0.5s' }}>
+          </MotionContainer>
+          <MotionContainer delay={0.5} className="step-item">
             <div className="step-number">3</div>
             <h3>Book & Collect</h3>
             <p>Reserve your medicine, get a QR code, and pick it up from the pharmacy within 30 minutes.</p>
-          </div>
+          </MotionContainer>
         </div>
       </section>
 
       {/* Features Section */}
       <section className="features">
-        <h2>Why Choose MEDORA?</h2>
+        <MotionContainer>
+          <h2>Why Choose MEDORA?</h2>
+        </MotionContainer>
         <div className="features-grid">
-          <div className="feature-card" style={{ animationDelay: '0.1s' }}>
-            <div className="feature-icon"><Search size={28} /></div>
-            <h3>Smart Search</h3>
-            <p>
-              Search for any medicine and instantly see which nearby pharmacies
-              have it in stock. Filter by category to narrow your results.
-            </p>
-          </div>
-
-          <div className="feature-card" style={{ animationDelay: '0.2s' }}>
-            <div className="feature-icon"><MapIcon size={28} /></div>
-            <h3>Live Map View</h3>
-            <p>
-              See pharmacies on an interactive map with color-coded pins
-              showing real-time stock levels — green, yellow, or red.
-            </p>
-          </div>
-
-          <div className="feature-card" style={{ animationDelay: '0.3s' }}>
-            <div className="feature-icon"><PhoneCall size={28} /></div>
-            <h3>Quick Actions</h3>
-            <p>
-              Call the pharmacy directly or get Google Maps directions with a
-              single tap. No more calling multiple stores.
-            </p>
-          </div>
-
-          <div className="feature-card" style={{ animationDelay: '0.4s' }}>
-            <div className="feature-icon"><Stethoscope size={28} /></div>
-            <h3>Pharmacist Portal</h3>
-            <p>
-              Pharmacists can manage their inventory, update stock levels, and
-              reach more customers through the MEDORA platform.
-            </p>
-          </div>
-
-          <div className="feature-card" style={{ animationDelay: '0.5s' }}>
-            <div className="feature-icon"><ShieldCheck size={28} /></div>
-            <h3>Rx Awareness</h3>
-            <p>
-              Medicines requiring a prescription are clearly marked with
-              warnings, promoting responsible medication practices.
-            </p>
-          </div>
-
-          <div className="feature-card" style={{ animationDelay: '0.6s' }}>
-            <div className="feature-icon"><BadgeCheck size={28} /></div>
-            <h3>Verified Pharmacies</h3>
-            <p>
-              Every pharmacy on MEDORA goes through a license verification
-              process managed by our admin team.
-            </p>
-          </div>
+          {[
+            { icon: <Search size={28} />, title: "Smart Search", desc: "Search for any medicine and instantly see which nearby pharmacies have it in stock." },
+            { icon: <MapIcon size={28} />, title: "Live Map View", desc: "See pharmacies on an interactive map with color-coded pins showing real-time stock levels." },
+            { icon: <PhoneCall size={28} />, title: "Quick Actions", desc: "Call the pharmacy directly or get Google Maps directions with a single tap." },
+            { icon: <Stethoscope size={28} />, title: "Pharmacist Portal", desc: "Pharmacists can manage their inventory, update stock levels, and reach more customers." },
+            { icon: <ShieldCheck size={28} />, title: "Rx Awareness", desc: "Medicines requiring a prescription are clearly marked with warnings." },
+            { icon: <BadgeCheck size={28} />, title: "Verified Pharmacies", desc: "Every pharmacy on MEDORA goes through a license verification process." }
+          ].map((feature, idx) => (
+            <MotionContainer 
+              key={idx} 
+              delay={idx * 0.1} 
+              className="feature-card"
+              direction="up"
+            >
+              <motion.div 
+                className="feature-icon"
+                whileHover={{ scale: 1.1, rotate: 5, backgroundColor: 'var(--clr-primary-bg)' }}
+              >
+                {feature.icon}
+              </motion.div>
+              <h3>{feature.title}</h3>
+              <p>{feature.desc}</p>
+            </MotionContainer>
+          ))}
         </div>
       </section>
 
