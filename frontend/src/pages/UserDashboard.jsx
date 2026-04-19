@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, LayersControl, Circle, ScaleControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { motion, AnimatePresence } from 'framer-motion';
+import MotionContainer from '../components/common/MotionContainer';
 import { categories } from '../data/data';
 import { searchMedicines, createBooking, getMyBookings } from '../services/api';
 import toast from 'react-hot-toast';
@@ -572,48 +574,64 @@ export default function UserDashboard() {
 
         {/* Sidebar List */}
         {hasSearched && (
-          <div style={{ width: '350px', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', paddingRight: '10px' }}>
+          <motion.div 
+            style={{ width: '350px', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', paddingRight: '10px' }}
+            initial="hidden"
+            animate="visible"
+            variants={{
+              visible: { transition: { staggerChildren: 0.1 } }
+            }}
+          >
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
             ) : mapPins.length > 0 ? (
-              mapPins.map(pin => (
-              <div key={pin.pharmacy.id} style={{ background: 'var(--clr-surface)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <h3 style={{ margin: 0, fontSize: '1rem' }}>{pin.pharmacy.name}</h3>
-                  {pin.pharmacy.distance !== null && (
-                    <span className="badge badge-primary">{pin.pharmacy.distance} km</span>
-                  )}
-                </div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)', marginBottom: '0.5rem' }}>📍 {pin.pharmacy.address}</p>
+              mapPins.map((pin, idx) => (
+              <MotionContainer 
+                key={pin.pharmacy.id} 
+                delay={idx * 0.05}
+                direction="right"
+                distance={20}
+              >
+                <div style={{ background: 'var(--clr-surface)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'all 0.3s var(--spring-soft)' }} className="interactive-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '1rem' }}>{pin.pharmacy.name}</h3>
+                    {pin.pharmacy.distance !== null && (
+                      <span className="badge badge-primary">{pin.pharmacy.distance} km</span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)', marginBottom: '0.5rem' }}>📍 {pin.pharmacy.address}</p>
 
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                  <button className="btn btn-primary btn-sm" onClick={() => openBookingSetup(pin)}>🛒 Book</button>
-                  <button className="btn btn-secondary btn-sm" onClick={() => handleDirections(pin.pharmacy)}>🗺️ Direction</button>
-                  <a href={`tel:${pin.pharmacy.phone}`} className="btn btn-ghost btn-sm">📞 Call</a>
-                </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-primary btn-sm" onClick={() => openBookingSetup(pin)}>🛒 Book</motion.button>
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-secondary btn-sm" onClick={() => handleDirections(pin.pharmacy)}>🗺️ Direction</motion.button>
+                    <motion.a whileHover={{ scale: 1.1 }} href={`tel:${pin.pharmacy.phone}`} className="btn btn-ghost btn-sm">📞 Call</motion.a>
+                  </div>
 
-                <div>
-                  {pin.allMedicines.map((m, i) => (
-                    <div key={i} style={{ borderTop: i > 0 ? '1px solid var(--clr-border)' : 'none', padding: '0.5rem 0', fontSize: '0.85rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '500' }}>
-                        <span>{m.medicine.name}</span>
-                        <span>₹{m.price || 0}</span>
+                  <div>
+                    {pin.allMedicines.map((m, i) => (
+                      <div key={i} style={{ borderTop: i > 0 ? '1px solid var(--clr-border)' : 'none', padding: '0.5rem 0', fontSize: '0.85rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '500' }}>
+                          <span>{m.medicine.name}</span>
+                          <span style={{ color: 'var(--clr-primary)' }}>₹{m.price || 0}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+                          {getStockBadge(m.stock)}
+                          {m.medicine.rxRequired && <span className="badge badge-warning">Rx</span>}
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-                        {getStockBadge(m.stock)}
-                        {m.medicine.rxRequired && <span className="badge badge-warning">Rx</span>}
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              </MotionContainer>
             ))
             ) : (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--clr-text-muted)' }}>
-                  No results found.
-                </div>
+                <MotionContainer direction="up">
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--clr-text-muted)' }}>
+                    No results found.
+                  </div>
+                </MotionContainer>
             )}
-          </div>
+          </motion.div>
         )}
 
         {/* Map Area */}
@@ -813,51 +831,80 @@ export default function UserDashboard() {
               <button className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={() => setActiveTab('search')}>Start Searching</button>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {myBookings.map(b => (
-                <div key={b.id} style={{ background: 'var(--clr-surface)', padding: '1.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--clr-text)' }}>{b.pharmacy_name}</h3>
-                    <span className={`badge ${b.status === 'confirmed' ? 'badge-success' : b.status === 'pending' ? 'badge-warning' : 'badge-danger'}`} style={{ textTransform: 'capitalize', fontSize: '0.8rem', padding: '0.4em 0.8em' }}>
-                      {b.status}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: 'var(--clr-text-muted)', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                    <span>🆔 Booking ID: <code>{b.id}</code></span>
-                    {b.status === 'pending' && b.qr_token && (
-                      <span>🎫 Token: <code>{String(b.qr_token).split('-')[0]}</code></span>
-                    )}
-                  </div>
-                  
-                  <div style={{ marginBottom: '1.5rem', background: 'var(--clr-background)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
-                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', textTransform: 'uppercase', color: 'var(--clr-text-muted)', letterSpacing: '0.5px' }}>Items Ordered</h4>
-                    {b.items.map((item, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', borderTop: i > 0 ? '1px solid var(--clr-border)' : 'none', padding: '0.5rem 0', fontSize: '0.95rem' }}>
-                        <span style={{ fontWeight: '500' }}>{item.medicine_name} <span style={{ color: 'var(--clr-text-muted)', fontSize: '0.85em', marginLeft: '0.5rem' }}>x{item.quantity}</span></span>
-                        <span style={{ fontWeight: '600' }}>₹{item.price * item.quantity}</span>
+            <motion.div 
+              style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+              initial="hidden"
+              animate="visible"
+              variants={{
+                visible: { transition: { staggerChildren: 0.2 } }
+              }}
+            >
+              {myBookings.map((b, idx) => (
+                <MotionContainer 
+                  key={b.id} 
+                  delay={idx * 0.1}
+                  direction="up"
+                  distance={20}
+                >
+                  <div style={{ background: 'var(--clr-surface)', padding: '1.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'transform 0.3s var(--spring-soft)' }} className="interactive-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--clr-text)' }}>{b.pharmacy_name}</h3>
+                      <span className={`badge ${b.status === 'confirmed' ? 'badge-success' : b.status === 'pending' ? 'badge-warning' : 'badge-danger'}`} style={{ textTransform: 'capitalize', fontSize: '0.8rem', padding: '0.4em 0.8em' }}>
+                        {b.status}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: 'var(--clr-text-muted)', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                      <span>🆔 Booking ID: <code>{b.id}</code></span>
+                      {b.status === 'pending' && b.qr_token && (
+                        <span>🎫 Token: <code>{String(b.qr_token).split('-')[0]}</code></span>
+                      )}
+                    </div>
+                    
+                    <div style={{ marginBottom: '1.5rem', background: 'var(--clr-background)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', textTransform: 'uppercase', color: 'var(--clr-text-muted)', letterSpacing: '0.5px' }}>Items Ordered</h4>
+                      {b.items.map((item, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', borderTop: i > 0 ? '1px solid var(--clr-border)' : 'none', padding: '0.5rem 0', fontSize: '0.95rem' }}>
+                          <span style={{ fontWeight: '500' }}>{item.medicine_name} <span style={{ color: 'var(--clr-text-muted)', fontSize: '0.85em', marginLeft: '0.5rem' }}>x{item.quantity}</span></span>
+                          <span style={{ fontWeight: '600' }}>₹{item.price * item.quantity}</span>
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid var(--clr-border)', paddingTop: '0.5rem', marginTop: '0.5rem', fontWeight: 'bold' }}>
+                        <span>Total Amount</span>
+                        <span>₹{b.items.reduce((total, item) => total + (item.price * item.quantity), 0)}</span>
                       </div>
-                    ))}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid var(--clr-border)', paddingTop: '0.5rem', marginTop: '0.5rem', fontWeight: 'bold' }}>
-                      <span>Total Amount</span>
-                      <span>₹{b.items.reduce((total, item) => total + (item.price * item.quantity), 0)}</span>
+                    </div>
+                    
+                    <div style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <span>📅 <strong>Created:</strong> {new Date(b.created_at).toLocaleString()}</span>
+                      <span>⌛ <strong>Expires:</strong> {new Date(b.expires_at).toLocaleString()}</span>
                     </div>
                   </div>
-                  
-                  <div style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <span>📅 <strong>Created:</strong> {new Date(b.created_at).toLocaleString()}</span>
-                    <span>⌛ <strong>Expires:</strong> {new Date(b.expires_at).toLocaleString()}</span>
-                  </div>
-                </div>
+                </MotionContainer>
               ))}
-            </div>
+            </motion.div>
           )}
         </div>
       )}
 
       {/* Booking Modal */}
+      <AnimatePresence>
       {showBookModal && bookingPharmacy && (
-        <div className="modal-overlay" onClick={() => !qrToken && setShowBookModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+        <motion.div 
+          className="modal-overlay" 
+          onClick={() => !qrToken && setShowBookModal(false)}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div 
+            className="modal" 
+            onClick={e => e.stopPropagation()} 
+            style={{ maxWidth: '500px' }}
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          >
 
             {!qrToken ? (
               <>
@@ -868,35 +915,28 @@ export default function UserDashboard() {
 
                 {/* Prescription Requirement Notice */}
                 {bookingPharmacy.allMedicines.some(m => m.medicine.rxRequired) && (
-                  <div style={{
-                    background: 'var(--clr-warning-light, #fef3c7)',
-                    border: '1px solid var(--clr-warning)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '0.75rem',
-                    marginBottom: '1rem',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '0.5rem'
-                  }}>
-                    <span style={{ fontSize: '1.2rem' }}>⚠️</span>
-                    <div>
-                      <div style={{
-                        fontWeight: '600',
-                        color: 'var(--clr-warning-text, #92400e)',
-                        marginBottom: '0.25rem'
-                      }}>
-                        Prescription Required
-                      </div>
-                      <div style={{
-                        fontSize: '0.85rem',
-                        color: 'var(--clr-warning-text, #92400e)',
-                        opacity: 0.9
-                      }}>
-                        Medicines marked with "Rx Required" need a valid prescription.
-                        Please bring your prescription to the pharmacy when collecting.
+                  <MotionContainer direction="down" distance={10}>
+                    <div style={{
+                      background: 'var(--clr-warning-bg)',
+                      border: '1px solid var(--clr-warning)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '0.75rem',
+                      marginBottom: '1rem',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '0.5rem'
+                    }}>
+                      <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+                      <div>
+                        <div style={{ fontWeight: '600', color: 'var(--clr-warning)', marginBottom: '0.25rem' }}>
+                          Prescription Required
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--clr-text-muted)' }}>
+                          Medicines marked with "Rx Required" need a valid prescription. Please bring it when collecting.
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </MotionContainer>
                 )}
 
                 <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '1rem' }}>
@@ -910,41 +950,29 @@ export default function UserDashboard() {
                         alignItems: 'center',
                         padding: '1rem',
                         borderBottom: '1px solid var(--clr-border)',
-                        background: quantity > 0 ? 'rgba(37, 99, 235, 0.05)' : 'transparent'
+                        background: quantity > 0 ? 'var(--clr-primary-bg)' : 'transparent',
+                        transition: 'background 0.3s ease'
                       }}>
                         <div style={{ flex: 1 }}>
-                          <div style={{
-                            fontWeight: '600',
-                            marginBottom: '0.25rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem'
-                          }}>
+                          <div style={{ fontWeight: '600', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             {m.medicine.name}
                             {m.medicine.rxRequired && (
-                              <span style={{
-                                background: 'var(--clr-warning)',
-                                color: 'var(--clr-warning-text, #92400e)',
-                                padding: '0.2rem 0.4rem',
-                                borderRadius: 'var(--radius-sm)',
-                                fontSize: '0.7rem',
-                                fontWeight: 'bold',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px'
-                              }}>
-                                Rx Required
-                              </span>
+                              <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>Rx Required</span>
                             )}
                           </div>
                           <div style={{ fontSize: '0.85rem', color: 'var(--clr-text-muted)', marginBottom: '0.25rem' }}>
                             ₹{m.price || 0} per unit • Stock: {m.stock}
                           </div>
                           {quantity > 0 && (
-                            <div style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--clr-primary)' }}>
+                            <motion.div 
+                              initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
+                              style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--clr-primary)' }}
+                            >
                               Subtotal: ₹{itemTotal}
-                            </div>
+                            </motion.div>
                           )}
                         </div>
+
                         <div style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -954,11 +982,10 @@ export default function UserDashboard() {
                           padding: '0.25rem',
                           border: '1px solid var(--clr-border)'
                         }}>
-                          <button
-                            onClick={() => {
-                              const newQty = Math.max(0, quantity - 1);
-                              setBookingQuantities(prev => ({ ...prev, [m.medicine.id]: newQty }));
-                            }}
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => setBookingQuantities(prev => ({ ...prev, [m.medicine.id]: Math.max(0, quantity - 1) }))}
                             disabled={quantity <= 0}
                             style={{
                               width: '32px',
@@ -972,25 +999,18 @@ export default function UserDashboard() {
                               fontWeight: 'bold',
                               display: 'flex',
                               alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.2s'
+                              justifyContent: 'center'
                             }}
                           >
                             −
-                          </button>
-                          <span style={{
-                            minWidth: '40px',
-                            textAlign: 'center',
-                            fontWeight: '600',
-                            fontSize: '1rem'
-                          }}>
+                          </motion.button>
+                          <span style={{ minWidth: '40px', textAlign: 'center', fontWeight: '600', fontSize: '1rem' }}>
                             {quantity}
                           </span>
-                          <button
-                            onClick={() => {
-                              const newQty = Math.min(m.stock, quantity + 1);
-                              setBookingQuantities(prev => ({ ...prev, [m.medicine.id]: newQty }));
-                            }}
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => setBookingQuantities(prev => ({ ...prev, [m.medicine.id]: Math.min(m.stock, quantity + 1) }))}
                             disabled={quantity >= m.stock}
                             style={{
                               width: '32px',
@@ -1004,12 +1024,11 @@ export default function UserDashboard() {
                               fontWeight: 'bold',
                               display: 'flex',
                               alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.2s'
+                              justifyContent: 'center'
                             }}
                           >
                             +
-                          </button>
+                          </motion.button>
                         </div>
                       </div>
                     );
@@ -1041,32 +1060,42 @@ export default function UserDashboard() {
 
                 <div className="modal-actions">
                   <button className="btn btn-ghost" onClick={() => setShowBookModal(false)}>Cancel</button>
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     className="btn btn-primary"
                     onClick={submitBooking}
-                    disabled={bookingLoading || bookingPharmacy.allMedicines.reduce((total, m) => total + (bookingQuantities[m.medicine.id] || 0), 0) === 0}
+                    disabled={bookingLoading || Object.values(bookingQuantities).reduce((a, b) => a + b, 0) === 0}
                     style={{ minWidth: '140px' }}
                   >
-                    {bookingLoading ? 'Reserving...' : `Book for ₹${bookingPharmacy.allMedicines.reduce((total, m) => {
-                      const qty = bookingQuantities[m.medicine.id] || 0;
-                      return total + (qty * (m.price || 0));
-                    }, 0)}`}
-                  </button>
+                    {bookingLoading ? 'Reserving...' : 'Confirm'}
+                  </motion.button>
                 </div>
               </>
             ) : (
-              <div style={{ textAlign: 'center', padding: '1rem' }}>
-                <h2 style={{ color: 'var(--clr-success)' }}>Booking Confirmed!</h2>
-                <p>Present the QR code below to the pharmacist within 30 minutes.</p>
+              <motion.div 
+                style={{ textAlign: 'center', padding: '1rem' }}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", bounce: 0.5 }}
+              >
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+                <h2 style={{ color: 'var(--clr-primary)' }}>Booking Confirmed!</h2>
+                <p style={{ marginBottom: '2rem' }}>Present the QR code below to the pharmacist within 30 minutes.</p>
 
-                <div style={{ margin: '2rem auto', background: '#fff', padding: '1rem', display: 'inline-block', borderRadius: '8px' }}>
+                <motion.div 
+                  style={{ margin: '0 auto 2rem', background: '#fff', padding: '1.5rem', display: 'inline-block', borderRadius: '16px', boxShadow: 'var(--shadow-lg)' }}
+                  initial={{ rotate: -10, scale: 0.8 }}
+                  animate={{ rotate: 0, scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring" }}
+                >
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrToken}`}
-                    alt="Booking QR Token"
-                    width="200"
-                    height="200"
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${qrToken}`}
+                    alt="Booking QR"
+                    width="180"
+                    height="180"
                   />
-                </div>
+                </motion.div>
 
                 <div style={{ fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '1rem' }}>
                   Token: <code>{String(qrToken).split('-')[0]}</code>
@@ -1075,12 +1104,13 @@ export default function UserDashboard() {
                 <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setShowBookModal(false)}>
                   Close
                 </button>
-              </div>
+              </motion.div>
             )}
 
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
     </div>
   );

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Pill, Sun, Moon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Navbar({ user, onLogout }) {
   const navigate = useNavigate();
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('medora-theme') || 'light';
   });
-  const [iconSpin, setIconSpin] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -15,9 +15,7 @@ export default function Navbar({ user, onLogout }) {
   }, [theme]);
 
   const toggleTheme = () => {
-    setIconSpin(true);
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
-    setTimeout(() => setIconSpin(false), 400);
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   };
 
   const handleLogout = () => {
@@ -28,22 +26,44 @@ export default function Navbar({ user, onLogout }) {
   return (
     <nav className="navbar">
       <Link to="/" className="navbar-logo">
-        <div className="logo-icon"><Pill size={20} /></div>
-        MEDORA
+        <motion.div 
+          className="logo-icon"
+          whileHover={{ scale: 1.1, rotate: -5 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          <Pill size={20} />
+        </motion.div>
+        <motion.span
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          MEDORA
+        </motion.span>
       </Link>
 
       <ul className="navbar-links">
         <li>
-          <button
+          <motion.button
             className="theme-toggle"
             onClick={toggleTheme}
+            whileHover={{ scale: 1.1, rotate: 15 }}
+            whileTap={{ scale: 0.9 }}
             aria-label="Toggle dark mode"
-            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
           >
-            <span className={`toggle-icon ${iconSpin ? 'spin-in' : ''}`}>
-              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-            </span>
-          </button>
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={theme}
+                className="toggle-icon"
+                initial={{ y: 20, opacity: 0, rotate: -90 }}
+                animate={{ y: 0, opacity: 1, rotate: 0 }}
+                exit={{ y: -20, opacity: 0, rotate: 90 }}
+                transition={{ duration: 0.2, ease: "backOut" }}
+              >
+                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+              </motion.span>
+            </AnimatePresence>
+          </motion.button>
         </li>
         {!user ? (
           <>

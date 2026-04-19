@@ -5,6 +5,8 @@ import {
   CheckCircle, XCircle, Ban, Check, X, RotateCcw, 
   Activity, Sparkles, MapPin, Timer, ClipboardList, ShieldCheck
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import MotionContainer from '../components/common/MotionContainer';
 import toast from 'react-hot-toast';
 import { SkeletonStats, SkeletonTable, Skeleton, SkeletonCard } from '../components/common/Skeleton';
 
@@ -100,20 +102,24 @@ export default function AdminDashboard() {
       {/* Sidebar */}
       <aside className="dashboard-sidebar">
         <ul className="sidebar-nav">
-          <li
+          <motion.li
             className={activeTab === 'dashboard' ? 'active' : ''}
             onClick={() => setActiveTab('dashboard')}
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            whileHover={{ x: 5 }}
+            whileTap={{ scale: 0.95 }}
           >
             <LayoutDashboard size={18} /> Dashboard
-          </li>
-          <li
+          </motion.li>
+          <motion.li
             className={activeTab === 'pharmacies' ? 'active' : ''}
             onClick={() => setActiveTab('pharmacies')}
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            whileHover={{ x: 5 }}
+            whileTap={{ scale: 0.95 }}
           >
             <Store size={18} /> Pharmacies
-          </li>
+          </motion.li>
         </ul>
         
         <div className="sidebar-footer">
@@ -138,19 +144,25 @@ export default function AdminDashboard() {
                 <SkeletonStats />
               ) : (
                 statCards.map((card, i) => (
-                  <div
-                    className="stat-card"
+                  <MotionContainer 
                     key={card.label}
-                    style={{ animationDelay: `${i * 0.1}s` }}
+                    delay={i * 0.1}
+                    direction="up"
                   >
-                    <div className="stat-icon" style={{ background: card.bg, color: card.color }}>
-                      {card.icon}
-                    </div>
-                    <div className="stat-content">
-                      <h3>{card.label}</h3>
-                      <div className="stat-number">{card.value}</div>
-                    </div>
-                  </div>
+                    <motion.div
+                      className="stat-card"
+                      whileHover={{ scale: 1.05, translateY: -5 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <div className="stat-icon" style={{ background: card.bg, color: card.color }}>
+                        {card.icon}
+                      </div>
+                      <div className="stat-content">
+                        <h3>{card.label}</h3>
+                        <div className="stat-number">{card.value}</div>
+                      </div>
+                    </motion.div>
+                  </MotionContainer>
                 ))
               )}
             </div>
@@ -160,14 +172,15 @@ export default function AdminDashboard() {
               {loading ? (
                 <SkeletonCard />
               ) : oldestPending ? (
+                <MotionContainer delay={0.4}>
                 <div 
-                  className="card animate-in" 
+                  className="card" 
                   style={{ 
                     padding: 'var(--sp-xl)', 
                     background: 'var(--clr-surface)', 
                     border: '2px solid var(--clr-primary-light)', 
                     borderRadius: 'var(--radius-lg)',
-                    boxShadow: '0 12px 32px rgba(13,148,136,0.1)',
+                    boxShadow: 'var(--card-glow)',
                     position: 'relative'
                   }}
                 >
@@ -232,6 +245,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 </div>
+                </MotionContainer>
               ) : (
                 <div 
                   style={{ 
@@ -267,12 +281,18 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {pharmacyList.slice(0, 5).map(p => (
-                          <tr key={p.id}>
+                        {pharmacyList.slice(0, 5).map((p, idx) => (
+                          <motion.tr 
+                            key={p.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: idx * 0.1 }}
+                          >
                             <td><strong>{p.name}</strong></td>
                             <td>{p.city}</td>
                             <td>{getStatusBadge(p.status)}</td>
-                          </tr>
+                          </motion.tr>
                         ))}
                       </tbody>
                     </table>
@@ -308,8 +328,18 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pharmacyList.map(pharmacy => (
-                    <tr key={pharmacy.id}>
+                  {pharmacyList.map((pharmacy, idx) => (
+                    <motion.tr 
+                      key={pharmacy.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ 
+                        delay: idx * 0.08,
+                        duration: 0.8,
+                        ease: [0.22, 1, 0.36, 1]
+                      }}
+                    >
                       <td>
                         <strong>{pharmacy.name}</strong>
                         <br />
@@ -379,7 +409,7 @@ export default function AdminDashboard() {
                           )}
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>
