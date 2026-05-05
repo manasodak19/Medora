@@ -14,6 +14,11 @@ from routes.search_routes import router as search_router
 from routes.booking_routes import router as booking_router
 from datetime import datetime, timezone
 
+# Fix for passlib/bcrypt compatibility issue
+import bcrypt
+if not hasattr(bcrypt, "__about__"):
+    bcrypt.__about__ = type("About", (object,), {"__version__": bcrypt.__version__})
+
 
 async def seed_admin():
     """Create the default admin account if it doesn't exist."""
@@ -40,6 +45,7 @@ async def lifespan(app: FastAPI):
     print("[STARTING] Connecting to MongoDB...")
     # Create unique index on email
     await users_collection.create_index("email", unique=True)
+        
     # Seed admin
     await seed_admin()
     print("[READY] MEDORA Backend is ready!")

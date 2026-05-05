@@ -42,6 +42,7 @@ export default function SignIn({ onAuth }) {
     }
   };
 
+
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -56,8 +57,9 @@ export default function SignIn({ onAuth }) {
         </div>
 
         {error && (
-          <div className="inline-alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--clr-danger-bg)', color: 'var(--clr-danger)', marginBottom: 'var(--sp-md)', padding: 'var(--sp-sm) var(--sp-md)', borderRadius: 'var(--radius-md)', fontSize: 'var(--fs-sm)' }}>
-            <AlertCircle size={18} style={{ flexShrink: 0 }} /> <span>{error}</span>
+          <div className="inline-alert danger" style={{ marginBottom: 'var(--sp-md)' }}>
+            <AlertCircle size={20} style={{ marginTop: '2px' }} /> 
+            <span>{error}</span>
           </div>
         )}
 
@@ -96,6 +98,7 @@ export default function SignIn({ onAuth }) {
           >
             {loading ? <><Loader2 size={18} className="spin" /> Signing in...</> : 'Sign In'}
           </button>
+
         </form>
 
         {/* Quick login hints */}

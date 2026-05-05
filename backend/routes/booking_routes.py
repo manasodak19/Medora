@@ -3,12 +3,7 @@ from bson import ObjectId
 from datetime import datetime, timezone, timedelta
 import uuid
 
-from database import pharmacies_collection, inventory_collection
-# Hack to get the client's db since database.py doesn't export 'db' clearly
-from database import users_collection 
-
-db = users_collection.database
-bookings_collection = db["bookings"]
+from database import pharmacies_collection, inventory_collection, users_collection, bookings_collection
 
 from models import BookingCreate, BookingResponse, VerifyBookingRequest
 from auth import get_current_user

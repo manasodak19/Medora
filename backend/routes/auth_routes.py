@@ -9,6 +9,7 @@ from database import users_collection, pharmacies_collection
 from models import UserSignUp, UserSignIn, UserResponse, TokenResponse
 from auth import hash_password, verify_password, create_access_token, get_current_user
 
+
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
@@ -52,6 +53,14 @@ async def signup(data: UserSignUp):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Pharmacist registration requires: {', '.join(missing)}",
+            )
+        
+        # 2.1 Check for duplicate license number
+        existing_license = await pharmacies_collection.find_one({"license": data.license_number.strip()})
+        if existing_license:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A pharmacy with this license number is already registered.",
             )
 
     # 3. Create user document
@@ -103,8 +112,10 @@ async def signin(data: UserSignIn):
             detail="Invalid email or password.",
         )
 
+
     # 2. Verify password
-    if not verify_password(data.password, user["password_hash"]):
+    password_hash = user.get("password_hash")
+    if not password_hash or not verify_password(data.password, password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",
@@ -133,3 +144,4 @@ async def signin(data: UserSignIn):
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: dict = Depends(get_current_user)):
     return user_doc_to_response(current_user)
+
