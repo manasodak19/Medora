@@ -34,7 +34,11 @@ async function request(endpoint, options = {}) {
     headers,
   });
 
-  const data = await response.json();
+  let data = {};
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    data = await response.json();
+  }
 
   if (!response.ok) {
     const message = data.detail || 'Something went wrong';

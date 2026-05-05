@@ -991,10 +991,9 @@ select.input-field {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--sp-xl);
   background: linear-gradient(135deg, #e0f2f1 0%, #f4f7fa 50%, #e8edf5 100%);
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 [data-theme="dark"] .auth-page {
@@ -1115,22 +1114,30 @@ select.input-field {
 .pharmacist-fields {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-md);
-  padding: var(--sp-md);
-  background: var(--clr-primary-bg);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(13, 148, 136, 0.15);
+  gap: var(--sp-lg);
+  padding: var(--sp-lg);
+  background: var(--clr-surface-alt);
+  border: 1.5px solid var(--clr-border);
+  border-radius: var(--radius-lg);
   animation: fadeIn 0.4s var(--ease-out);
+  margin-top: var(--sp-md);
 }
 
 .pharmacist-fields .fields-title {
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-semibold);
-  color: var(--clr-primary-dark);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+  color: var(--clr-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: var(--sp-sm);
+  border-bottom: 1.5px solid var(--clr-border);
+  margin-bottom: var(--sp-sm);
 }
 
-[data-theme="dark"] .pharmacist-fields .fields-title {
-  color: var(--clr-primary);
+[data-theme="dark"] .pharmacist-fields {
+  background: rgba(13, 148, 136, 0.05);
+  border-color: rgba(13, 148, 136, 0.2);
 }
 
 /* ── Landing Page ── */
@@ -1960,13 +1967,27 @@ select.input-field {
 /* ── Toast / Alert ── */
 .inline-alert {
   display: flex;
-  align-items: center;
-  gap: var(--sp-sm);
-  padding: var(--sp-sm) var(--sp-md);
-  border-radius: var(--radius-md);
+  align-items: flex-start;
+  gap: var(--sp-md);
+  padding: var(--sp-md);
+  border-radius: var(--radius-lg);
   font-size: var(--fs-sm);
   font-weight: var(--fw-medium);
-  animation: fadeIn 0.3s var(--ease-out);
+  animation: fadeIn 0.4s var(--ease-out);
+  line-height: 1.5;
+  border: 1px solid transparent;
+}
+
+.inline-alert.danger {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+[data-theme="dark"] .inline-alert.danger {
+  background: rgba(220, 38, 38, 0.15);
+  color: #fca5a5;
+  border-color: rgba(220, 38, 38, 0.3);
 }
 
 /* ── Loading Spinner ── */
