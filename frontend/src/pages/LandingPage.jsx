@@ -137,8 +137,8 @@ export default function LandingPage() {
           </MotionContainer>
           <MotionContainer delay={0.5} className="step-item">
             <div className="step-number">3</div>
-            <h3>Book & Collect</h3>
-            <p>Reserve your medicine, get a QR code, and pick it up from the pharmacy within 30 minutes.</p>
+            <h3>Order & Pickup/Delivery</h3>
+            <p>Order your medicine instantly for fast home delivery, or pick it up directly from the pharmacy.</p>
           </MotionContainer>
         </div>
       </section>

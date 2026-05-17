@@ -32,8 +32,8 @@ const AddressForm = ({ onSubmit, initialData = {}, onCancel }) => {
     <form onSubmit={handleSubmit} style={{ padding: 'var(--sp-lg)', background: 'var(--clr-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--clr-border)', boxShadow: 'var(--shadow-sm)' }}>
       <h3 style={{ margin: '0 0 var(--sp-lg) 0', fontSize: '1.25rem', color: 'var(--clr-text)' }}>Delivery Address</h3>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--sp-md)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-md)' }}>
+        <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <label style={{ fontSize: '0.9rem', fontWeight: '500', color: 'var(--clr-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <User size={16} color="var(--clr-text-muted)" /> Full Name
           </label>
@@ -48,7 +48,7 @@ const AddressForm = ({ onSubmit, initialData = {}, onCancel }) => {
           />
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <label style={{ fontSize: '0.9rem', fontWeight: '500', color: 'var(--clr-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Phone size={16} color="var(--clr-text-muted)" /> Phone Number
           </label>
@@ -138,7 +138,7 @@ const AddressForm = ({ onSubmit, initialData = {}, onCancel }) => {
           />
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', marginTop: 'auto', marginBottom: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginTop: 'auto', marginBottom: '0.5rem', minWidth: '180px' }}>
           <input
             type="checkbox"
             id="is_default"

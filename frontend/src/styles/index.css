@@ -5,6 +5,13 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
+/* Global box-sizing reset to prevent element overlapping */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /* ── CSS Custom Properties ── */
 :root {
   /* Colors — soft light palette */
@@ -1716,24 +1723,42 @@ select.input-field {
   gap: var(--sp-md);
   margin-bottom: var(--sp-lg);
   flex-wrap: wrap;
+  align-items: stretch; /* Stretch children to align heights beautifully */
+  width: 100%;
 }
 
 .search-bar {
-  flex: 1;
-  min-width: 250px;
+  flex: 2; /* Search input gets larger space */
+  min-width: 280px;
   position: relative;
+}
+
+.category-filter {
+  flex: 1; /* Category gets proportional space */
+  min-width: 200px;
+}
+
+/* Make sure all inputs, selects, and buttons inside the search section compute to EXACTLY 48px high */
+.search-bar input,
+.category-filter select.input-field,
+.search-section .btn {
+  height: 48px;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
 }
 
 .search-bar input {
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  padding: 0 1rem 0 2.75rem;
   border: 1.5px solid var(--clr-border);
-  border-radius: var(--radius-lg);
   font-family: var(--ff-body);
   font-size: var(--fs-sm);
   background: var(--clr-surface);
   color: var(--clr-text);
-  transition: all var(--duration) var(--ease-out);
+  transition: border-color var(--duration-fast) var(--ease-in-out), box-shadow var(--duration-fast) var(--ease-in-out);
   outline: none;
 }
 
@@ -1744,15 +1769,15 @@ select.input-field {
 
 .search-bar .search-icon {
   position: absolute;
-  left: 0.875rem;
+  left: 1rem;
   top: 50%;
   transform: translateY(-50%);
   color: var(--clr-text-light);
   font-size: var(--fs-lg);
-}
-
-.category-filter {
-  min-width: 180px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Map */

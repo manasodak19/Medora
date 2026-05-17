@@ -232,33 +232,6 @@ export async function searchMedicines(query = '', category = 'All', lat = null, 
   return request(url);
 }
 
-// ── Booking API ──────────────────────────────────────────────
-
-export async function createBooking(pharmacyId, items) {
-  return request('/bookings/', {
-    method: 'POST',
-    body: JSON.stringify({
-      pharmacy_id: pharmacyId,
-      items: items
-    }),
-  });
-}
-
-export async function verifyBooking(qrToken) {
-  return request('/bookings/verify', {
-    method: 'POST',
-    body: JSON.stringify({ qr_token: qrToken }),
-  });
-}
-
-export async function getMyBookings() {
-  return request('/bookings/my-bookings');
-}
-
-export async function getPharmacyBookingHistory() {
-  return request('/bookings/pharmacy-history');
-}
-
 // ── Generic API Client (Axios-like interface) ────────────────
 
 const api = {

@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import MotionContainer from '../components/common/MotionContainer';
 import { categories } from '../data/data';
-import { searchMedicines, createBooking, getMyBookings } from '../services/api';
+import { searchMedicines } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { SkeletonCard, SkeletonTable, Skeleton } from '../components/common/Skeleton';
@@ -156,7 +156,6 @@ function NorthArrow() {
       `;
       const arrow = container.querySelector('div');
       arrow.onclick = () => {
-        // Reset map rotation to north
         map.setBearing(0);
       };
       arrow.onmouseover = () => {
@@ -186,14 +185,12 @@ function MapModeToggle() {
   };
 
   useEffect(() => {
-    // Remove existing tile layers
     map.eachLayer((layer) => {
       if (layer instanceof L.TileLayer) {
         map.removeLayer(layer);
       }
     });
 
-    // Add the appropriate tile layer
     const tileLayer = L.tileLayer(
       isSatellite
         ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
@@ -319,30 +316,8 @@ export default function UserDashboard() {
   const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [mapPins, setMapPins] = useState([]);
-  
-  // Tabs State
-  const [activeTab, setActiveTab] = useState('search');
-  const [myBookings, setMyBookings] = useState([]);
-  const [loadingBookings, setLoadingBookings] = useState(false);
+
   const navigate = useNavigate();
-
-  const fetchBookings = async () => {
-    try {
-      setLoadingBookings(true);
-      const data = await getMyBookings();
-      setMyBookings(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingBookings(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'bookings') {
-      fetchBookings();
-    }
-  }, [activeTab]);
 
   // Geolocation states
   const [userPos, setUserPos] = useState([19.0760, 72.8777]); // Default Mumbai
@@ -351,16 +326,7 @@ export default function UserDashboard() {
   // Directions state
   const [routePath, setRoutePath] = useState(null);
   const [mapBounds, setMapBounds] = useState(null);
-  const [routeDetails, setRouteDetails] = useState(null); // ✅ FIX: was missing, caused blank page
-
-  // Booking states
-  const [showBookModal, setShowBookModal] = useState(false);
-  const [bookingPharmacy, setBookingPharmacy] = useState(null);
-  const [bookingQuantities, setBookingQuantities] = useState({});
-  const [bookingLoading, setBookingLoading] = useState(false);
-
-  // QR states
-  const [qrToken, setQrToken] = useState(null);
+  const [routeDetails, setRouteDetails] = useState(null);
 
   // Ask for location on mount
   useEffect(() => {
@@ -393,7 +359,7 @@ export default function UserDashboard() {
     setLoading(true);
     setRoutePath(null);
     setMapBounds(null);
-    setRouteDetails(null); // clear route on new search
+    setRouteDetails(null);
 
     try {
       const lat = locationGranted ? userPos[0] : null;
@@ -422,58 +388,15 @@ export default function UserDashboard() {
   };
 
   const handleOrderNow = (pin) => {
-    // Navigate to checkout with the first matched medicine or just the first medicine available
-    // It's better to pass the medicine the user searched for.
-    // pin.allMedicines contains [{ medicine, stock, price }, ...]
     const firstMed = pin.allMedicines[0];
     if (!firstMed) return toast.error('No medicines available here');
-    
-    navigate('/checkout', { 
-      state: { 
-        medicine: { ...firstMed.medicine, price: firstMed.price, stock: firstMed.stock }, 
-        pharmacyId: pin.pharmacy.id || pin.pharmacy._id 
-      } 
-    });
-  };
 
-  const openBookingSetup = (pin) => {
-    setBookingPharmacy(pin);
-    const initialQtys = {};
-    pin.allMedicines.forEach(m => {
-      initialQtys[m.medicine.id] = 0;
-    });
-    setBookingQuantities(initialQtys);
-    setQrToken(null);
-    setShowBookModal(true);
-  };
-
-  const submitBooking = async () => {
-    const items = [];
-    bookingPharmacy.allMedicines.forEach(m => {
-      const qty = bookingQuantities[m.medicine.id] || 0;
-      if (qty > 0) {
-        items.push({
-          medicine_id: m.medicine.id,
-          quantity: qty
-        });
+    navigate('/checkout', {
+      state: {
+        medicine: { ...firstMed.medicine, price: firstMed.price, stock: firstMed.stock },
+        pharmacyId: pin.pharmacy.id || pin.pharmacy._id
       }
     });
-
-    if (items.length === 0) {
-      toast.error("Please select at least 1 medicine to book.");
-      return;
-    }
-
-    try {
-      setBookingLoading(true);
-      const res = await createBooking(bookingPharmacy.pharmacy.id, items);
-      setQrToken(res.qr_token);
-      toast.success("Medicine booked successfully!");
-    } catch (err) {
-      toast.error("Failed to create booking: " + err.message);
-    } finally {
-      setBookingLoading(false);
-    }
   };
 
   const totalMatchedMeds = new Set();
@@ -482,78 +405,82 @@ export default function UserDashboard() {
   });
 
   return (
+    // ✅ Single outermost wrapper — flex column, full height
     <div style={{ padding: 'var(--sp-xl)', width: '98%', maxWidth: '1800px', margin: '0 auto', height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
-      {activeTab === 'search' ? (
-        <>
-          <div className="animate-in" style={{ flexShrink: 0 }}>
-        <h2 style={{ fontSize: 'var(--fs-2xl)', fontWeight: 'var(--fw-bold)', marginBottom: 'var(--sp-sm)' }}>
-          Find Medicines Near You
-        </h2>
-        <p style={{ color: 'var(--clr-text-muted)', fontSize: 'var(--fs-sm)', marginBottom: 'var(--sp-lg)' }}>
-          Search for any medicine and see which nearby pharmacies have it in stock.
-          {locationGranted ? " (Using your Live Location 📍)" : ""}
-        </p>
 
-        <form className="search-section" onSubmit={handleSearch}>
-          <div className="search-bar">
-            <span className="search-icon">🔍</span>
-            <input
-              type="text"
-              placeholder="Search medicines... (e.g. Paracetamol, Amoxicillin)"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div className="category-filter">
-            <select
-              className="input-field"
-              value={selectedCategory}
-              onChange={e => {
-                const newCat = e.target.value;
-                setSelectedCategory(newCat);
-                if (hasSearched) triggerSearch(searchQuery, newCat);
-              }}
-            >
-              <option value="All">All Categories</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-          <button type="submit" className="btn btn-primary" style={{ height: '100%' }} disabled={loading}>
-            {loading ? <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>🔍 Searching...</span> : 'Search'}
-          </button>
-        </form>
+      {/* ── Header + Search ── */}
+      <div style={{ flexShrink: 0 }}>
+        <MotionContainer direction="down" distance={15}>
+          <h2 style={{ fontSize: 'var(--fs-2xl)', fontWeight: 'var(--fw-bold)', marginBottom: 'var(--sp-sm)' }}>
+            Find Medicines Near You
+          </h2>
+          <p style={{ color: 'var(--clr-text-muted)', fontSize: 'var(--fs-sm)', marginBottom: 'var(--sp-lg)' }}>
+            Search for any medicine and see which nearby pharmacies have it in stock.
+            {locationGranted ? " (Using your Live Location 📍)" : ""}
+          </p>
 
-        {searchHistory.length > 0 && (
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)' }}>Recent Searches:</span>
-            {searchHistory.map((item, idx) => (
-              <button
-                key={idx}
-                type="button"
-                style={{ fontSize: 'var(--fs-xs)', padding: '0.25rem 0.5rem', background: 'var(--clr-surface)', border: '1px solid var(--clr-border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--clr-text)' }}
-                onClick={() => {
-                  setSearchQuery(item);
-                  triggerSearch(item, selectedCategory);
+          <form className="search-section" onSubmit={handleSearch}>
+            <div className="search-bar">
+              <span className="search-icon">🔍</span>
+              <input
+                type="text"
+                placeholder="Search medicines... (e.g. Paracetamol, Amoxicillin)"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="category-filter">
+              <select
+                className="input-field"
+                value={selectedCategory}
+                onChange={e => {
+                  const newCat = e.target.value;
+                  setSelectedCategory(newCat);
+                  if (hasSearched) triggerSearch(searchQuery, newCat);
                 }}
               >
-                🕒 {item}
-              </button>
-            ))}
-            <button
-              type="button"
-              style={{ fontSize: 'var(--fs-xs)', padding: '0.25rem 0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-danger)', textDecoration: 'underline' }}
-              onClick={() => {
-                setSearchHistory([]);
-                localStorage.removeItem('medoraSearchHistory');
-              }}
-            >
-              Clear
+                <option value="All">All Categories</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+            <button type="submit" className="btn btn-primary" style={{ height: '100%' }} disabled={loading}>
+              {loading ? <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>🔍 Searching...</span> : 'Search'}
             </button>
-          </div>
-        )}
+          </form>
 
+          {searchHistory.length > 0 && (
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--clr-text-muted)' }}>Recent Searches:</span>
+              {searchHistory.map((item, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  style={{ fontSize: 'var(--fs-xs)', padding: '0.25rem 0.5rem', background: 'var(--clr-surface)', border: '1px solid var(--clr-border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--clr-text)' }}
+                  onClick={() => {
+                    setSearchQuery(item);
+                    triggerSearch(item, selectedCategory);
+                  }}
+                >
+                  🕒 {item}
+                </button>
+              ))}
+              <button
+                type="button"
+                style={{ fontSize: 'var(--fs-xs)', padding: '0.25rem 0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-danger)', textDecoration: 'underline' }}
+                onClick={() => {
+                  setSearchHistory([]);
+                  localStorage.removeItem('medoraSearchHistory');
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </MotionContainer>
+
+        {/* ── Stats Bar ── */}
         {hasSearched && !loading && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--sp-md)', flexWrap: 'wrap', gap: 'var(--sp-sm)' }}>
             <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--clr-text-muted)' }}>
@@ -572,12 +499,14 @@ export default function UserDashboard() {
           </div>
         )}
       </div>
+      {/* ── End Header + Search ── */}
 
-      <div style={{ flex: 1, display: 'flex', gap: '1rem', overflow: 'hidden', minHeight: '500px' }}>
+      {/* ── Main Content: Sidebar + Map ── */}
+      <div style={{ display: 'flex', flexGrow: 1, gap: '1rem', overflow: 'hidden', minHeight: '500px' }}>
 
         {/* Sidebar List */}
         {hasSearched && (
-          <motion.div 
+          <motion.div
             style={{ width: '350px', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', paddingRight: '10px' }}
             initial="hidden"
             animate="visible"
@@ -589,58 +518,64 @@ export default function UserDashboard() {
               Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
             ) : mapPins.length > 0 ? (
               mapPins.map((pin, idx) => (
-              <MotionContainer 
-                key={pin.pharmacy.id} 
-                delay={idx * 0.05}
-                direction="right"
-                distance={20}
-              >
-                <div style={{ background: 'var(--clr-surface)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'all 0.3s var(--spring-soft)' }} className="interactive-card">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1rem' }}>{pin.pharmacy.name}</h3>
-                    {pin.pharmacy.distance !== null && (
-                      <span className="badge badge-primary">{pin.pharmacy.distance} km</span>
-                    )}
-                  </div>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)', marginBottom: '0.5rem' }}>📍 {pin.pharmacy.address}</p>
+                <MotionContainer
+                  key={pin.pharmacy.id}
+                  delay={idx * 0.05}
+                  direction="right"
+                  distance={20}
+                >
+                  <div
+                    style={{ background: 'var(--clr-surface)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'all 0.3s var(--spring-soft)' }}
+                    className="interactive-card"
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                      <h3 style={{ margin: 0, fontSize: '1rem' }}>{pin.pharmacy.name}</h3>
+                      {pin.pharmacy.distance !== null && (
+                        <span className="badge badge-primary">{pin.pharmacy.distance} km</span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)', marginBottom: '0.5rem' }}>📍 {pin.pharmacy.address}</p>
 
-                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-primary btn-sm" onClick={() => handleOrderNow(pin)}>🛒 Order Now</motion.button>
-                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-primary btn-sm" onClick={() => openBookingSetup(pin)}>🛒 Book</motion.button>
-                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-secondary btn-sm" onClick={() => handleDirections(pin.pharmacy)}>🗺️ Direction</motion.button>
-                    <motion.a whileHover={{ scale: 1.1 }} href={`tel:${pin.pharmacy.phone}`} className="btn btn-ghost btn-sm">📞 Call</motion.a>
-                  </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-primary btn-sm" onClick={() => handleOrderNow(pin)}>🛒 Order Now</motion.button>
+                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-secondary btn-sm" onClick={() => handleDirections(pin.pharmacy)}>🗺️ Direction</motion.button>
+                      <motion.a whileHover={{ scale: 1.1 }} href={`tel:${pin.pharmacy.phone}`} className="btn btn-ghost btn-sm">📞 Call</motion.a>
+                    </div>
 
-                  <div>
-                    {pin.allMedicines.map((m, i) => (
-                      <div key={i} style={{ borderTop: i > 0 ? '1px solid var(--clr-border)' : 'none', padding: '0.5rem 0', fontSize: '0.85rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '500' }}>
-                          <span>{m.medicine.name}</span>
-                          <span style={{ color: 'var(--clr-primary)' }}>₹{m.price || 0}</span>
+                    <div>
+                      {pin.allMedicines.map((m, i) => (
+                        <div key={i} style={{ borderTop: i > 0 ? '1px solid var(--clr-border)' : 'none', padding: '0.5rem 0', fontSize: '0.85rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '500' }}>
+                            <span>{m.medicine.name}</span>
+                            <span style={{ color: 'var(--clr-primary)' }}>₹{m.price || 0}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+                            {getStockBadge(m.stock)}
+                            {m.medicine.rxRequired && <span className="badge badge-warning">Rx</span>}
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-                          {getStockBadge(m.stock)}
-                          {m.medicine.rxRequired && <span className="badge badge-warning">Rx</span>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </MotionContainer>
-            ))
-            ) : (
-                <MotionContainer direction="up">
-                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--clr-text-muted)' }}>
-                    No results found.
+                      ))}
+                    </div>
                   </div>
                 </MotionContainer>
+              ))
+            ) : (
+              <MotionContainer direction="up">
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--clr-text-muted)' }}>
+                  No results found.
+                </div>
+              </MotionContainer>
             )}
           </motion.div>
         )}
 
         {/* Map Area */}
-        <div style={{ flex: 1, borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', position: 'relative' }}>
-
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          style={{ flex: 1, borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', position: 'relative' }}
+        >
           {routeDetails && (
             <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1000, background: 'rgba(255,255,255,0.95)', padding: '1rem', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', width: '300px', maxHeight: '400px', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -673,9 +608,9 @@ export default function UserDashboard() {
               </p>
             </div>
           ) : loading ? (
-             <div style={{ padding: '2rem', height: '100%' }}>
-               <Skeleton width="100%" height="100%" borderRadius="var(--radius-lg)" />
-             </div>
+            <div style={{ padding: '2rem', height: '100%' }}>
+              <Skeleton width="100%" height="100%" borderRadius="var(--radius-lg)" />
+            </div>
           ) : mapPins.length === 0 ? (
             <div className="map-placeholder" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--clr-surface)' }}>
               <div className="placeholder-icon" style={{ fontSize: '3rem', marginBottom: '1rem' }}>😔</div>
@@ -705,24 +640,9 @@ export default function UserDashboard() {
                 <>
                   <Marker position={userPos} icon={blueUserIcon}>
                     <Popup>
-                      <div style={{
-                        padding: '0.5rem',
-                        textAlign: 'center',
-                        fontFamily: 'var(--font-family)',
-                        background: 'var(--clr-surface)',
-                        color: 'var(--clr-text)',
-                        borderRadius: 'var(--radius-md)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                      }}>
-                        <strong style={{
-                          fontSize: '1rem',
-                          color: 'var(--clr-primary)'
-                        }}>📍 You are here</strong>
-                        <p style={{
-                          margin: '0.25rem 0 0 0',
-                          fontSize: '0.8rem',
-                          color: 'var(--clr-text-muted)'
-                        }}>
+                      <div style={{ padding: '0.5rem', textAlign: 'center', fontFamily: 'var(--font-family)', background: 'var(--clr-surface)', color: 'var(--clr-text)', borderRadius: 'var(--radius-md)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                        <strong style={{ fontSize: '1rem', color: 'var(--clr-primary)' }}>📍 You are here</strong>
+                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: 'var(--clr-text-muted)' }}>
                           {userPos[0].toFixed(4)}, {userPos[1].toFixed(4)}
                         </p>
                       </div>
@@ -741,66 +661,24 @@ export default function UserDashboard() {
                     icon={getStockIcon(bestStock)}
                   >
                     <Popup>
-                      <div style={{
-                        minWidth: '200px',
-                        padding: '0.5rem',
-                        fontFamily: 'var(--font-family)',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'var(--clr-surface)',
-                        color: 'var(--clr-text)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                      }}>
-                        <h3 style={{
-                          margin: '0 0 0.5rem 0',
-                          fontSize: '1rem',
-                          fontWeight: 'bold',
-                          color: 'var(--clr-primary)'
-                        }}>{pin.pharmacy.name}</h3>
-                        <p style={{
-                          margin: '0 0 0.5rem 0',
-                          fontSize: '0.85rem',
-                          color: 'var(--clr-text-muted)',
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: '0.25rem'
-                        }}>
+                      <div style={{ minWidth: '200px', padding: '0.5rem', fontFamily: 'var(--font-family)', borderRadius: 'var(--radius-md)', background: 'var(--clr-surface)', color: 'var(--clr-text)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                        <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', fontWeight: 'bold', color: 'var(--clr-primary)' }}>{pin.pharmacy.name}</h3>
+                        <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: 'var(--clr-text-muted)', display: 'flex', alignItems: 'flex-start', gap: '0.25rem' }}>
                           <span>📍</span>
                           <span>{pin.pharmacy.address}</span>
                         </p>
-                        <div style={{
-                          display: 'flex',
-                          gap: '0.5rem',
-                          flexWrap: 'wrap'
-                        }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <button
                             className="btn btn-primary btn-sm"
                             onClick={() => handleOrderNow(pin)}
-                            style={{
-                              fontSize: '0.8rem',
-                              padding: '0.25rem 0.5rem',
-                              borderRadius: 'var(--radius-sm)',
-                              cursor: 'pointer',
-                              border: 'none',
-                              background: 'var(--clr-primary)',
-                              color: 'white',
-                              fontWeight: '500'
-                            }}
+                            style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', border: 'none', background: 'var(--clr-primary)', color: 'white', fontWeight: '500' }}
                           >
                             🛒 Order Now
                           </button>
                           <button
                             className="btn btn-secondary btn-sm"
                             onClick={() => handleDirections(pin.pharmacy)}
-                            style={{
-                              fontSize: '0.8rem',
-                              padding: '0.25rem 0.5rem',
-                              borderRadius: 'var(--radius-sm)',
-                              cursor: 'pointer',
-                              border: '1px solid var(--clr-border)',
-                              background: 'var(--clr-surface)',
-                              color: 'var(--clr-text)',
-                              fontWeight: '500'
-                            }}
+                            style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', border: '1px solid var(--clr-border)', background: 'var(--clr-surface)', color: 'var(--clr-text)', fontWeight: '500' }}
                           >
                             🗺️ Directions
                           </button>
@@ -812,310 +690,13 @@ export default function UserDashboard() {
               })}
             </MapContainer>
           )}
-        </div>
-      </div>
-      </>
-      ) : (
-        <div style={{ flex: 1, overflowY: 'auto', paddingRight: '1rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2 style={{ fontSize: 'var(--fs-xl)', margin: 0 }}>Your Booking History</h2>
-            <button className="btn btn-secondary btn-sm" onClick={fetchBookings} disabled={loadingBookings}>
-              {loadingBookings ? (
-                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>🔄 Refreshing...</span>
-              ) : '🔄 Refresh'}
-            </button>
-          </div>
-          {loadingBookings ? (
-            <SkeletonTable rows={4} cols={5} />
-          ) : myBookings.length === 0 ? (
-            <div style={{ padding: '3rem', textAlign: 'center', background: 'var(--clr-surface)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--clr-border)' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
-              <h3 style={{ margin: '0 0 0.5rem 0' }}>No Bookings Yet</h3>
-              <p style={{ color: 'var(--clr-text-muted)' }}>You haven't made any medicine bookings. Search for a medicine and book it to see your history here.</p>
-              <button className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={() => setActiveTab('search')}>Start Searching</button>
-            </div>
-          ) : (
-            <motion.div 
-              style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
-              initial="hidden"
-              animate="visible"
-              variants={{
-                visible: { transition: { staggerChildren: 0.2 } }
-              }}
-            >
-              {myBookings.map((b, idx) => (
-                <MotionContainer 
-                  key={b.id} 
-                  delay={idx * 0.1}
-                  direction="up"
-                  distance={20}
-                >
-                  <div style={{ background: 'var(--clr-surface)', padding: '1.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'transform 0.3s var(--spring-soft)' }} className="interactive-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--clr-text)' }}>{b.pharmacy_name}</h3>
-                      <span className={`badge ${b.status === 'confirmed' ? 'badge-success' : b.status === 'pending' ? 'badge-warning' : 'badge-danger'}`} style={{ textTransform: 'capitalize', fontSize: '0.8rem', padding: '0.4em 0.8em' }}>
-                        {b.status}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: 'var(--clr-text-muted)', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                      <span>🆔 Booking ID: <code>{b.id}</code></span>
-                      {b.status === 'pending' && b.qr_token && (
-                        <span>🎫 Token: <code>{String(b.qr_token).split('-')[0]}</code></span>
-                      )}
-                    </div>
-                    
-                    <div style={{ marginBottom: '1.5rem', background: 'var(--clr-background)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', textTransform: 'uppercase', color: 'var(--clr-text-muted)', letterSpacing: '0.5px' }}>Items Ordered</h4>
-                      {b.items.map((item, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', borderTop: i > 0 ? '1px solid var(--clr-border)' : 'none', padding: '0.5rem 0', fontSize: '0.95rem' }}>
-                          <span style={{ fontWeight: '500' }}>{item.medicine_name} <span style={{ color: 'var(--clr-text-muted)', fontSize: '0.85em', marginLeft: '0.5rem' }}>x{item.quantity}</span></span>
-                          <span style={{ fontWeight: '600' }}>₹{item.price * item.quantity}</span>
-                        </div>
-                      ))}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid var(--clr-border)', paddingTop: '0.5rem', marginTop: '0.5rem', fontWeight: 'bold' }}>
-                        <span>Total Amount</span>
-                        <span>₹{b.items.reduce((total, item) => total + (item.price * item.quantity), 0)}</span>
-                      </div>
-                    </div>
-                    
-                    <div style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      <span>📅 <strong>Created:</strong> {new Date(b.created_at).toLocaleString()}</span>
-                      <span>⌛ <strong>Expires:</strong> {new Date(b.expires_at).toLocaleString()}</span>
-                    </div>
-                  </div>
-                </MotionContainer>
-              ))}
-            </motion.div>
-          )}
-        </div>
-      )}
-
-      {/* Booking Modal */}
-      <AnimatePresence>
-      {showBookModal && bookingPharmacy && (
-        <motion.div 
-          className="modal-overlay" 
-          onClick={() => !qrToken && setShowBookModal(false)}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <motion.div 
-            className="modal" 
-            onClick={e => e.stopPropagation()} 
-            style={{ maxWidth: '500px' }}
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          >
-
-            {!qrToken ? (
-              <>
-                <h2>Book at {bookingPharmacy.pharmacy.name}</h2>
-                <p style={{ color: 'var(--clr-text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                  Select the quantities you wish to reserve. The pharmacy will hold these for 30 minutes.
-                </p>
-
-                {/* Prescription Requirement Notice */}
-                {bookingPharmacy.allMedicines.some(m => m.medicine.rxRequired) && (
-                  <MotionContainer direction="down" distance={10}>
-                    <div style={{
-                      background: 'var(--clr-warning-bg)',
-                      border: '1px solid var(--clr-warning)',
-                      borderRadius: 'var(--radius-md)',
-                      padding: '0.75rem',
-                      marginBottom: '1rem',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.5rem'
-                    }}>
-                      <span style={{ fontSize: '1.2rem' }}>⚠️</span>
-                      <div>
-                        <div style={{ fontWeight: '600', color: 'var(--clr-warning)', marginBottom: '0.25rem' }}>
-                          Prescription Required
-                        </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--clr-text-muted)' }}>
-                          Medicines marked with "Rx Required" need a valid prescription. Please bring it when collecting.
-                        </div>
-                      </div>
-                    </div>
-                  </MotionContainer>
-                )}
-
-                <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '1rem' }}>
-                  {bookingPharmacy.allMedicines.map(m => {
-                    const quantity = bookingQuantities[m.medicine.id] || 0;
-                    const itemTotal = quantity * (m.price || 0);
-                    return (
-                      <div key={m.medicine.id} style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '1rem',
-                        borderBottom: '1px solid var(--clr-border)',
-                        background: quantity > 0 ? 'var(--clr-primary-bg)' : 'transparent',
-                        transition: 'background 0.3s ease'
-                      }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: '600', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            {m.medicine.name}
-                            {m.medicine.rxRequired && (
-                              <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>Rx Required</span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--clr-text-muted)', marginBottom: '0.25rem' }}>
-                            ₹{m.price || 0} per unit • Stock: {m.stock}
-                          </div>
-                          {quantity > 0 && (
-                            <motion.div 
-                              initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
-                              style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--clr-primary)' }}
-                            >
-                              Subtotal: ₹{itemTotal}
-                            </motion.div>
-                          )}
-                        </div>
-
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          background: 'var(--clr-surface)',
-                          borderRadius: '25px',
-                          padding: '0.25rem',
-                          border: '1px solid var(--clr-border)'
-                        }}>
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => setBookingQuantities(prev => ({ ...prev, [m.medicine.id]: Math.max(0, quantity - 1) }))}
-                            disabled={quantity <= 0}
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '50%',
-                              border: 'none',
-                              background: quantity > 0 ? 'var(--clr-danger)' : 'var(--clr-border)',
-                              color: quantity > 0 ? 'white' : 'var(--clr-text-muted)',
-                              cursor: quantity > 0 ? 'pointer' : 'not-allowed',
-                              fontSize: '16px',
-                              fontWeight: 'bold',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                          >
-                            −
-                          </motion.button>
-                          <span style={{ minWidth: '40px', textAlign: 'center', fontWeight: '600', fontSize: '1rem' }}>
-                            {quantity}
-                          </span>
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => setBookingQuantities(prev => ({ ...prev, [m.medicine.id]: Math.min(m.stock, quantity + 1) }))}
-                            disabled={quantity >= m.stock}
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '50%',
-                              border: 'none',
-                              background: quantity < m.stock ? 'var(--clr-success)' : 'var(--clr-border)',
-                              color: quantity < m.stock ? 'white' : 'var(--clr-text-muted)',
-                              cursor: quantity < m.stock ? 'pointer' : 'not-allowed',
-                              fontSize: '16px',
-                              fontWeight: 'bold',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                          >
-                            +
-                          </motion.button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Total Price Section */}
-                <div style={{
-                  background: 'var(--clr-background)',
-                  padding: '1rem',
-                  borderRadius: 'var(--radius-md)',
-                  marginBottom: '1rem',
-                  border: '1px solid var(--clr-border)'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <span style={{ fontWeight: '600', fontSize: '1rem' }}>Order Summary</span>
-                    <span style={{ fontSize: '0.9rem', color: 'var(--clr-text-muted)' }}>
-                      {Object.values(bookingQuantities).reduce((sum, qty) => sum + qty, 0)} items
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--clr-primary)' }}>
-                    <span>Total Amount:</span>
-                    <span>₹{bookingPharmacy.allMedicines.reduce((total, m) => {
-                      const qty = bookingQuantities[m.medicine.id] || 0;
-                      return total + (qty * (m.price || 0));
-                    }, 0)}</span>
-                  </div>
-                </div>
-
-                <div className="modal-actions">
-                  <button className="btn btn-ghost" onClick={() => setShowBookModal(false)}>Cancel</button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="btn btn-primary"
-                    onClick={submitBooking}
-                    disabled={bookingLoading || Object.values(bookingQuantities).reduce((a, b) => a + b, 0) === 0}
-                    style={{ minWidth: '140px' }}
-                  >
-                    {bookingLoading ? 'Reserving...' : 'Confirm'}
-                  </motion.button>
-                </div>
-              </>
-            ) : (
-              <motion.div 
-                style={{ textAlign: 'center', padding: '1rem' }}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "spring", bounce: 0.5 }}
-              >
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
-                <h2 style={{ color: 'var(--clr-primary)' }}>Booking Confirmed!</h2>
-                <p style={{ marginBottom: '2rem' }}>Present the QR code below to the pharmacist within 30 minutes.</p>
-
-                <motion.div 
-                  style={{ margin: '0 auto 2rem', background: '#fff', padding: '1.5rem', display: 'inline-block', borderRadius: '16px', boxShadow: 'var(--shadow-lg)' }}
-                  initial={{ rotate: -10, scale: 0.8 }}
-                  animate={{ rotate: 0, scale: 1 }}
-                  transition={{ delay: 0.3, type: "spring" }}
-                >
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${qrToken}`}
-                    alt="Booking QR"
-                    width="180"
-                    height="180"
-                  />
-                </motion.div>
-
-                <div style={{ fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '1rem' }}>
-                  Token: <code>{String(qrToken).split('-')[0]}</code>
-                </div>
-
-                <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setShowBookModal(false)}>
-                  Close
-                </button>
-              </motion.div>
-            )}
-
-          </motion.div>
         </motion.div>
-      )}
-      </AnimatePresence>
+        {/* ── End Map Area ── */}
+
+      </div>
+      {/* ── End Main Content ── */}
 
     </div>
+    // ── End outermost wrapper ──
   );
 }

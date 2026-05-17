@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { categories } from '../data/data';
-import api, { getMyInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem, addInventoryBatch, getPharmacyBookingHistory, verifyBooking } from '../services/api';
+import api, { getMyInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem, addInventoryBatch } from '../services/api';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'framer-motion';
 import MotionContainer from '../components/common/MotionContainer';
@@ -278,7 +278,7 @@ export default function PharmacistDashboard() {
       <main className="dashboard-main">
         {activeTab === 'inventory' && (
           <>
-            <div className="animate-in">
+            <MotionContainer direction="up" distance={20}>
           <h2>Inventory Dashboard</h2>
 
           {/* Dynamic Metrics Grid */}
@@ -405,7 +405,7 @@ export default function PharmacistDashboard() {
               </table>
             </div>
           )}
-        </div>
+        </MotionContainer>
 
         {/* Add/Edit Modal */}
         <AnimatePresence>
@@ -870,7 +870,7 @@ function DeliveryAgentsTab() {
   };
 
   return (
-    <div className="animate-in">
+    <MotionContainer direction="up" distance={20}>
       <div className="section-header">
         <h2>🛵 Delivery Agents Management</h2>
         <button className="btn btn-ghost" onClick={loadAgents} disabled={loading}>🔄 Refresh</button>
@@ -921,13 +921,12 @@ function DeliveryAgentsTab() {
           </table>
         </div>
       )}
-    </div>
+    </MotionContainer>
   );
 }
 
 function OrderHistoryTab() {
   const [subTab, setSubTab] = useState('delivery'); // 'pickup' or 'delivery'
-  const [bookings, setBookings] = useState([]);
   const [orders, setOrders] = useState([]);
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -940,12 +939,10 @@ function OrderHistoryTab() {
   const loadAllData = async () => {
     try {
       setLoading(true);
-      const [bookingsData, ordersData, agentsData] = await Promise.all([
-        getPharmacyBookingHistory(),
+      const [ordersData, agentsData] = await Promise.all([
         api.get('/orders/pharmacy-history'),
         api.get('/delivery/agents')
       ]);
-      setBookings(bookingsData || []);
       setOrders(ordersData || []);
       setAgents(agentsData || []);
     } catch (err) {
@@ -1011,18 +1008,19 @@ function OrderHistoryTab() {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Completed':
-      case 'confirmed':
         return <span className="badge badge-success">✅ Completed</span>;
       case 'Delivered':
         return <span className="badge badge-success" style={{ background: '#eff6ff', color: '#1d4ed8' }}>📦 Delivered</span>;
-      case 'pending':
+      case 'Picked Up':
+        return <span className="badge badge-success" style={{ background: '#eff6ff', color: '#1d4ed8' }}>🏪 Picked Up</span>;
       case 'Pending':
         return <span className="badge badge-warning">⏳ Pending</span>;
+      case 'Accepted':
+        return <span className="badge badge-info" style={{ background: '#f5f3ff', color: '#6d28d9' }}>👍 Accepted</span>;
       case 'Assigned to Delivery Agent':
         return <span className="badge badge-info" style={{ background: '#f5f3ff', color: '#6d28d9' }}>🛵 Assigned</span>;
       case 'Out for Delivery':
         return <span className="badge badge-info" style={{ background: '#f0fdfa', color: '#0f766e' }}>🚀 Out for Delivery</span>;
-      case 'expired':
       case 'Cancelled':
       case 'Rejected':
         return <span className="badge badge-danger">❌ {status}</span>;
@@ -1031,8 +1029,11 @@ function OrderHistoryTab() {
     }
   };
 
+  const homeDeliveries = orders.filter(o => o.delivery_method === 'home_delivery');
+  const storePickups = orders.filter(o => o.delivery_method === 'store_pickup');
+
   return (
-    <div className="animate-in">
+    <MotionContainer direction="up" distance={20}>
       <div className="section-header">
         <h2>📋 Manage Customer Orders</h2>
         <button className="btn btn-ghost" onClick={loadAllData} disabled={loading || actionLoading}>🔄 Refresh</button>
@@ -1059,7 +1060,7 @@ function OrderHistoryTab() {
             borderBottom: subTab === 'delivery' ? '2px solid var(--clr-primary)' : 'none'
           }}
         >
-          🛵 Home Deliveries ({orders.length})
+          🛵 Home Deliveries ({homeDeliveries.length})
         </button>
         <button 
           onClick={() => setSubTab('pickup')}
@@ -1074,7 +1075,7 @@ function OrderHistoryTab() {
             borderBottom: subTab === 'pickup' ? '2px solid var(--clr-primary)' : 'none'
           }}
         >
-          🏪 Store Pickups ({bookings.length})
+          🏪 Store Pickups ({storePickups.length})
         </button>
       </div>
 
@@ -1082,9 +1083,9 @@ function OrderHistoryTab() {
         <SkeletonTable rows={5} cols={6} />
       ) : subTab === 'pickup' ? (
         // Store Pickups Table
-        bookings.length === 0 ? (
+        storePickups.length === 0 ? (
           <div className="empty-state">
-            <p>No store pickup bookings found.</p>
+            <p>No store pickup orders found.</p>
           </div>
         ) : (
           <div className="table-container">
@@ -1096,25 +1097,71 @@ function OrderHistoryTab() {
                   <th>Items</th>
                   <th>Total Price</th>
                   <th>Placed At</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {bookings.map((booking, idx) => (
-                  <tr key={booking.id}>
+                {storePickups.map((order, idx) => (
+                  <tr key={order.id}>
                     <td>
-                      <div style={{ fontWeight: '600' }}>{booking.customer_name}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)' }}>ID: {booking.id.slice(-8)}</div>
+                      <div style={{ fontWeight: '600' }}>{order.customer_name}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--clr-text-muted)' }}>ID: {order.id.slice(-8)}</div>
                     </td>
-                    <td>{getStatusBadge(booking.status)}</td>
+                    <td>{getStatusBadge(order.status)}</td>
                     <td>
-                      {booking.items.map((item, idx) => (
+                      {order.items.map((item, idx) => (
                         <div key={idx} style={{ fontSize: '0.85rem' }}>
                           {item.medicine_name} ({item.quantity}x)
                         </div>
                       ))}
                     </td>
-                    <td style={{ fontWeight: 'bold', color: 'var(--clr-primary)' }}>₹{booking.total_amount || 0}</td>
-                    <td style={{ fontSize: '0.85rem' }}>{new Date(booking.created_at).toLocaleString()}</td>
+                    <td style={{ fontWeight: 'bold', color: 'var(--clr-primary)' }}>₹{order.total_amount || 0}</td>
+                    <td style={{ fontSize: '0.85rem' }}>{new Date(order.created_at).toLocaleString()}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        {order.status === 'Pending' && (
+                          <>
+                            <button 
+                              className="btn btn-success" 
+                              onClick={() => handleAcceptOrder(order.id)}
+                              disabled={actionLoading}
+                              style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                            >
+                              Accept
+                            </button>
+                            <button 
+                              className="btn btn-danger" 
+                              onClick={() => handleRejectOrder(order.id)}
+                              disabled={actionLoading}
+                              style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', background: 'var(--clr-danger)' }}
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+
+                        {order.status === 'Accepted' && (
+                          <span style={{ fontSize: '0.85rem', color: 'var(--clr-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            Ready for customer pickup
+                          </span>
+                        )}
+
+                        {order.status === 'Picked Up' && (
+                          <button 
+                            className="btn btn-success" 
+                            onClick={() => handleCompleteOrder(order.id)}
+                            disabled={actionLoading}
+                            style={{ padding: '0.35rem 0.6rem', fontSize: '0.85rem', fontWeight: 'bold', background: 'var(--clr-success)', color: 'white' }}
+                          >
+                            ✅ Complete & Deduct Stock
+                          </button>
+                        )}
+
+                        {['Completed', 'Cancelled', 'Rejected'].includes(order.status) && (
+                          <span style={{ fontSize: '0.85rem', color: 'var(--clr-text-muted)' }}>No actions</span>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1123,7 +1170,7 @@ function OrderHistoryTab() {
         )
       ) : (
         // Home Deliveries Table
-        orders.length === 0 ? (
+        homeDeliveries.length === 0 ? (
           <div className="empty-state">
             <p>No home delivery orders found.</p>
           </div>
@@ -1141,7 +1188,7 @@ function OrderHistoryTab() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order, idx) => (
+                {homeDeliveries.map((order, idx) => (
                   <tr key={order.id}>
                     <td>
                       <div style={{ fontWeight: '600' }}>{order.customer_name}</div>
@@ -1227,6 +1274,6 @@ function OrderHistoryTab() {
           </div>
         )
       )}
-    </div>
+    </MotionContainer>
   );
 }
