@@ -4,8 +4,21 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://medora-delta-one.vercel.app/)
+[![Render](https://img.shields.io/badge/Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://medora-cado.onrender.com)
 
 **Medora** is a premium, full-stack healthcare ecosystem designed to eliminate the uncertainty of finding life-saving medications. Built with a "Clean-First" philosophy, it features a glassmorphic user interface and complex geospatial logic to connect patient needs with pharmacy inventory in real-time.
+
+---
+
+## 🌐 Live Demo
+
+| Service | Link |
+| :--- | :--- |
+| 🖥️ **Frontend (Vercel)** | [medora-delta-one.vercel.app](https://medora-delta-one.vercel.app/) |
+| ⚙️ **Backend API (Render)** | [medora-cado.onrender.com](https://medora-cado.onrender.com) |
+
+> ⚠️ **Note:** The backend is hosted on Render's free tier, which spins down after periods of inactivity. The first request after idle time may take **30–50 seconds** to respond while the server cold-starts.
 
 ---
 
@@ -44,8 +57,23 @@
 | :--- | :--- |
 | **Frontend** | React 19, Vite, Lucide-React, Leaflet, React Router DOM |
 | **Backend** | FastAPI, Python 3.11, Pydantic, Motor (Async MongoDB) |
-| **Database** | MongoDB (NoSQL) |
+| **Database** | MongoDB Atlas (Cloud NoSQL) |
 | **Security** | JWT Tokens, Bcrypt Hashing, PASSLIB |
+
+### Deployment Stack
+| Layer | Platform | URL |
+| :--- | :--- | :--- |
+| **Frontend** | Vercel | [medora-delta-one.vercel.app](https://medora-delta-one.vercel.app/) |
+| **Backend** | Render | [medora-cado.onrender.com](https://medora-cado.onrender.com) |
+| **Database** | MongoDB Atlas | Managed cloud cluster |
+
+```text
+┌─────────────────┐        HTTPS         ┌─────────────────┐        MongoDB Driver       ┌──────────────────┐
+│   React Client   │ ───────────────────▶ │   FastAPI API    │ ───────────────────────────▶ │  MongoDB Atlas    │
+│  (Vercel - CDN)  │ ◀─────────────────── │  (Render - Web   │ ◀─────────────────────────── │  (Cloud Cluster)  │
+│                   │      JSON / REST     │   Service)        │         Async (Motor)         │                    │
+└─────────────────┘                       └─────────────────┘                               └──────────────────┘
+```
 
 ### Project Directory Structure
 ```text
@@ -88,6 +116,16 @@ cd backend
 python -m venv venv
 .\venv\Scripts\activate
 pip install -r requirements.txt
+```
+
+Create a `.env` file in the `backend` directory:
+```env
+MONGO_URI=your_mongodb_atlas_connection_string
+JWT_SECRET=your_jwt_secret_key
+```
+
+Run the server:
+```bash
 uvicorn main:app --reload
 ```
 
@@ -95,8 +133,25 @@ uvicorn main:app --reload
 ```bash
 cd frontend
 npm install
+```
+
+Create a `.env` file in the `frontend` directory, pointing to your local backend:
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+Run the dev server:
+```bash
 npm run dev
 ```
+
+---
+
+## ☁️ Deployment Notes
+
+- **Frontend (Vercel):** Deployed directly from the `frontend` directory. Set the `VITE_API_BASE_URL` environment variable in Vercel's project settings to `https://medora-cado.onrender.com`.
+- **Backend (Render):** Deployed as a Web Service from the `backend` directory, with `uvicorn main:app --host 0.0.0.0 --port $PORT` as the start command. Set `MONGO_URI` and `JWT_SECRET` as environment variables in Render's dashboard.
+- **Database (MongoDB Atlas):** Ensure the cluster's network access allows connections from Render (either via `0.0.0.0/0` for simplicity or Render's specific outbound IPs for tighter security).
 
 ---
 
